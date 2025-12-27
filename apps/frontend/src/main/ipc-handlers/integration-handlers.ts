@@ -157,6 +157,11 @@ async function testOAuthConnection(
             const backendPath = getBackendPathForIntegrations();
             const pythonPath = getPythonPathForIntegrations();
 
+            console.log('[testOAuthConnection] Token length:', oauthToken?.length);
+            console.log('[testOAuthConnection] Token preview:', oauthToken?.substring(0, 10) + '...' + oauthToken?.substring(oauthToken.length - 10));
+            console.log('[testOAuthConnection] Backend path:', backendPath);
+            console.log('[testOAuthConnection] Python path:', pythonPath);
+
             const python = spawn(pythonPath, [
                 '-c',
                 `
