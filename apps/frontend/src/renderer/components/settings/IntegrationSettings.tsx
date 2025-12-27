@@ -367,6 +367,44 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     }
   };
 
+  const handleFetchModels = async (integration: UnifiedIntegration & { type: 'api-token' }): Promise<string[]> => {
+    try {
+      const result = await window.electronAPI.getApiModels(
+        integration.apiToken,
+        integration.baseUrl
+      );
+
+      if (result.success && result.data?.models) {
+        return result.data.models;
+      } else {
+        alert(`❌ Failed to fetch models:\n\n${result.error || 'Unknown error'}`);
+        return [];
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`❌ Failed to fetch models:\n\n${errorMessage}`);
+      return [];
+    }
+  };
+
+  const handleUpdateModelMapping = (integrationId: string, modelMapping: { opus?: string; sonnet?: string; haiku?: string }) => {
+    const updatedIntegrations = integrations.map(int => {
+      if (int.id === integrationId && int.type === 'api-token') {
+        return { ...int, modelMapping };
+      }
+      return int;
+    });
+
+    setIntegrations(updatedIntegrations);
+    onSettingsChange({
+      ...settings,
+      integrations: updatedIntegrations
+    });
+
+    // Show success feedback (could use toast in future)
+    alert('✓ Model mapping saved successfully!');
+  };
+
   return (
     <SettingsSection
       title={t('integrations.title')}
@@ -402,6 +440,8 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
                     onDelete={() => handleDeleteIntegration(integration.id)}
                     onReauthenticate={integration.type === 'oauth' ? () => handleReauthenticate(integration) : undefined}
                     onTestConnection={() => handleTestConnection(integration)}
+                    onFetchModels={integration.type === 'api-token' ? () => handleFetchModels(integration) : undefined}
+                    onUpdateModelMapping={integration.type === 'api-token' ? (mapping) => handleUpdateModelMapping(integration.id, mapping) : undefined}
                   />
                 ))}
               </div>

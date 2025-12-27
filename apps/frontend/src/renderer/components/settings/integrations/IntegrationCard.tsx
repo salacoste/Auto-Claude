@@ -16,6 +16,7 @@ import {
     AlertCircle
 } from 'lucide-react';
 import { Button } from '../../ui/button';
+import { Label } from '../../ui/label';
 import { cn } from '../../../lib/utils';
 import type { UnifiedIntegration } from '../../../../shared/types/integration';
 import type { ClaudeProfile } from '../../../../shared/types';
@@ -29,6 +30,8 @@ interface IntegrationCardProps {
     onReauthenticate?: () => void; // For OAuth
     onEdit?: () => void; // For API Token
     onTestConnection?: () => Promise<{ success: boolean; message: string }>; // Test connection
+    onFetchModels?: () => Promise<string[]>; // Fetch available models (API Token)
+    onUpdateModelMapping?: (mapping: { opus?: string; sonnet?: string; haiku?: string }) => void; // Update model mapping
 }
 
 export function IntegrationCard({
@@ -39,11 +42,18 @@ export function IntegrationCard({
     onDelete,
     onReauthenticate,
     onEdit,
-    onTestConnection
+    onTestConnection,
+    onFetchModels,
+    onUpdateModelMapping
 }: IntegrationCardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isTesting, setIsTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+    // Model fetching state
+    const [isFetchingModels, setIsFetchingModels] = useState(false);
+    const [availableModels, setAvailableModels] = useState<string[]>([]);
+    const [modelMapping, setModelMapping] = useState(integration.type === 'api-token' ? integration.modelMapping : undefined);
 
     // Auto-dismiss test result after 5 seconds
     useEffect(() => {
@@ -217,6 +227,111 @@ export function IntegrationCard({
                                     <Edit className="h-3 w-3" />
                                     Edit Settings
                                 </Button>
+                            )}
+
+                            {/* Fetch Models Button */}
+                            {onFetchModels && (
+                                <div className="mt-3">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={async () => {
+                                            setIsFetchingModels(true);
+                                            try {
+                                                const models = await onFetchModels();
+                                                setAvailableModels(models);
+                                            } finally {
+                                                setIsFetchingModels(false);
+                                            }
+                                        }}
+                                        disabled={isFetchingModels}
+                                        className="gap-2 w-full"
+                                    >
+                                        <RefreshCw className={cn("h-3 w-3", isFetchingModels && "animate-spin")} />
+                                        {isFetchingModels ? 'Fetching Models...' : 'Fetch Available Models'}
+                                    </Button>
+
+                                    {/* Model Mapping UI */}
+                                    {availableModels.length > 0 && onUpdateModelMapping && (
+                                        <div className="mt-3 p-3 space-y-3 bg-muted/30 rounded border border-border">
+                                            <p className="text-xs font-medium">Map Models to Claude Tiers</p>
+
+                                            {/* Opus */}
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">
+                                                    Opus (Most Powerful)
+                                                </Label>
+                                                <select
+                                                    value={modelMapping?.opus || ''}
+                                                    onChange={(e) => {
+                                                        const newMapping = { ...modelMapping, opus: e.target.value || undefined };
+                                                        setModelMapping(newMapping);
+                                                    }}
+                                                    className="w-full mt-1 h-8 px-2 text-xs rounded border border-input bg-background"
+                                                >
+                                                    <option value="">Select model...</option>
+                                                    {availableModels.map(model => (
+                                                        <option key={`opus-${model}`} value={model}>{model}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {/* Sonnet */}
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">
+                                                    Sonnet (Balanced)
+                                                </Label>
+                                                <select
+                                                    value={modelMapping?.sonnet || ''}
+                                                    onChange={(e) => {
+                                                        const newMapping = { ...modelMapping, sonnet: e.target.value || undefined };
+                                                        setModelMapping(newMapping);
+                                                    }}
+                                                    className="w-full mt-1 h-8 px-2 text-xs rounded border border-input bg-background"
+                                                >
+                                                    <option value="">Select model...</option>
+                                                    {availableModels.map(model => (
+                                                        <option key={`sonnet-${model}`} value={model}>{model}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {/* Haiku */}
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">
+                                                    Haiku (Fast & Efficient)
+                                                </Label>
+                                                <select
+                                                    value={modelMapping?.haiku || ''}
+                                                    onChange={(e) => {
+                                                        const newMapping = { ...modelMapping, haiku: e.target.value || undefined };
+                                                        setModelMapping(newMapping);
+                                                    }}
+                                                    className="w-full mt-1 h-8 px-2 text-xs rounded border border-input bg-background"
+                                                >
+                                                    <option value="">Select model...</option>
+                                                    {availableModels.map(model => (
+                                                        <option key={`haiku-${model}`} value={model}>{model}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {/* Save Button */}
+                                            <Button
+                                                size="sm"
+                                                onClick={() => {
+                                                    if (modelMapping && onUpdateModelMapping) {
+                                                        onUpdateModelMapping(modelMapping);
+                                                    }
+                                                }}
+                                                className="w-full gap-2"
+                                            >
+                                                <Check className="h-3 w-3" />
+                                                Save Model Mapping
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
                     )}
