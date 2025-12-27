@@ -361,5 +361,9 @@ export const IPC_CHANNELS = {
   RELEASE_GET_VERSIONS: 'release:getVersions',
 
   // Release events (main -> renderer)
-  RELEASE_PROGRESS: 'release:progress'
+  RELEASE_PROGRESS: 'release:progress',
+
+  // Integration operations (API Token-based integrations)
+  INTEGRATION_TEST_TOKEN: 'integration:testToken',
+  INTEGRATION_GET_MODELS: 'integration:getModels'
 } as const;
