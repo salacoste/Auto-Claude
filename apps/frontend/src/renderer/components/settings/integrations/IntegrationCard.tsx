@@ -55,6 +55,23 @@ export function IntegrationCard({
     const [availableModels, setAvailableModels] = useState<string[]>([]);
     const [modelMapping, setModelMapping] = useState(integration.type === 'api-token' ? integration.modelMapping : undefined);
 
+    // Helper to build clean ModelMapping with only defined values
+    const buildModelMapping = (current: any, field: 'opus' | 'sonnet' | 'haiku', value: string | null): any => {
+        const clean: any = {};
+
+        // Add existing fields that have values
+        if (current?.opus && field !== 'opus') clean.opus = current.opus;
+        if (current?.sonnet && field !== 'sonnet') clean.sonnet = current.sonnet;
+        if (current?.haiku && field !== 'haiku') clean.haiku = current.haiku;
+
+        // Add new field if value provided
+        if (value) {
+            clean[field] = value;
+        }
+
+        return Object.keys(clean).length > 0 ? clean : undefined;
+    };
+
     // Auto-dismiss test result after 5 seconds
     useEffect(() => {
         if (testResult) {
@@ -264,20 +281,8 @@ export function IntegrationCard({
                                                 <select
                                                     value={modelMapping?.opus || ''}
                                                     onChange={(e) => {
-                                                        const value = e.target.value;
-                                                        if (value) {
-                                                            // Add opus to mapping
-                                                            setModelMapping({
-                                                                ...(modelMapping || {}),
-                                                                opus: value
-                                                            } as { opus: string; sonnet?: string; haiku?: string });
-                                                        } else {
-                                                            // Remove opus from mapping
-                                                            if (modelMapping) {
-                                                                const { opus, ...rest } = modelMapping;
-                                                                setModelMapping(Object.keys(rest).length > 0 ? rest as any : undefined);
-                                                            }
-                                                        }
+                                                        const newMapping = buildModelMapping(modelMapping, 'opus', e.target.value || null);
+                                                        setModelMapping(newMapping);
                                                     }}
                                                     className="w-full mt-1 h-8 px-2 text-xs rounded border border-input bg-background"
                                                 >
@@ -296,20 +301,8 @@ export function IntegrationCard({
                                                 <select
                                                     value={modelMapping?.sonnet || ''}
                                                     onChange={(e) => {
-                                                        const value = e.target.value;
-                                                        if (value) {
-                                                            // Add sonnet to mapping
-                                                            setModelMapping({
-                                                                ...(modelMapping || {}),
-                                                                sonnet: value
-                                                            } as { opus?: string; sonnet: string; haiku?: string });
-                                                        } else {
-                                                            // Remove sonnet from mapping
-                                                            if (modelMapping) {
-                                                                const { sonnet, ...rest } = modelMapping;
-                                                                setModelMapping(Object.keys(rest).length > 0 ? rest as any : undefined);
-                                                            }
-                                                        }
+                                                        const newMapping = buildModelMapping(modelMapping, 'sonnet', e.target.value || null);
+                                                        setModelMapping(newMapping);
                                                     }}
                                                     className="w-full mt-1 h-8 px-2 text-xs rounded border border-input bg-background"
                                                 >
@@ -328,20 +321,8 @@ export function IntegrationCard({
                                                 <select
                                                     value={modelMapping?.haiku || ''}
                                                     onChange={(e) => {
-                                                        const value = e.target.value;
-                                                        if (value) {
-                                                            // Add haiku to mapping
-                                                            setModelMapping({
-                                                                ...(modelMapping || {}),
-                                                                haiku: value
-                                                            } as { opus?: string; sonnet?: string; haiku: string });
-                                                        } else {
-                                                            // Remove haiku from mapping
-                                                            if (modelMapping) {
-                                                                const { haiku, ...rest } = modelMapping;
-                                                                setModelMapping(Object.keys(rest).length > 0 ? rest as any : undefined);
-                                                            }
-                                                        }
+                                                        const newMapping = buildModelMapping(modelMapping, 'haiku', e.target.value || null);
+                                                        setModelMapping(newMapping);
                                                     }}
                                                     className="w-full mt-1 h-8 px-2 text-xs rounded border border-input bg-background"
                                                 >
