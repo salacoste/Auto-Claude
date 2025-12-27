@@ -1,5 +1,5 @@
 /**
- * Integration types for API token-based integrations
+ * Integration types for unified OAuth and API token-based integrations
  */
 
 export type IntegrationType = 'oauth' | 'api-token';
@@ -10,24 +10,39 @@ export interface ModelMapping {
     haiku: string;   // e.g., "GLM-4.5-Air" or "claude-3-haiku-20240307"
 }
 
-export interface Integration {
+/**
+ * OAuth integration (Claude account)
+ */
+export interface OAuthIntegration {
     id: string;
-    type: IntegrationType;
+    type: 'oauth';
     name: string;
-    isActive: boolean;
-    createdAt: string;
-
-    // OAuth specific
-    oauthToken?: string;
-    refreshToken?: string;
     email?: string;
-
-    // API Token specific
-    apiToken?: string;
-    baseUrl?: string;
-    description?: string;
-    modelMapping?: ModelMapping;
+    isAuthenticated: boolean;
+    profileId: string; // Link to ClaudeProfile
+    createdAt: string;
 }
+
+/**
+ * API Token based integration
+ */
+export interface ApiTokenIntegration {
+    id: string;
+    type: 'api-token';
+    name: string;
+    description?: string;
+    apiToken: string;
+    baseUrl: string;
+    modelMapping?: ModelMapping;
+    createdAt: string;
+}
+
+/**
+ * Unified integration type
+ */
+export type UnifiedIntegration = OAuthIntegration | ApiTokenIntegration;
+
+// IPC Request/Response types
 
 export interface TestTokenRequest {
     apiToken: string;
