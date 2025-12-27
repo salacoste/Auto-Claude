@@ -309,57 +309,61 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     await loadClaudeProfiles();
   };
 
-  const handleTestConnection = async (integration: UnifiedIntegration) => {
+  const handleTestConnection = async (integration: UnifiedIntegration): Promise<{ success: boolean; message: string }> => {
     try {
       if (integration.type === 'oauth') {
         // Test OAuth by checking if profile has valid token
         const profile = claudeProfiles[integration.profileId];
 
         if (!profile) {
-          alert('❌ Test failed:\n\nProfile not found. Please re-authenticate.');
-          return;
+          return {
+            success: false,
+            message: 'Profile not found. Please re-authenticate.'
+          };
         }
 
         if (!integration.isAuthenticated || !profile.oauthToken) {
-          alert('❌ Test failed:\n\nNo OAuth token found. Please authenticate first.');
-          return;
+          return {
+            success: false,
+            message: 'No OAuth token found. Please authenticate first.'
+          };
         }
 
-        // For OAuth, we can verify the token exists and profile is configured
-        // A deeper test would require calling Claude API, but that's handled by agent-process
-        alert(
-          '✅ OAuth integration looks good!\n\n' +
-          `Profile: ${integration.name}\n` +
-          `Email: ${integration.email || 'Unknown'}\n` +
-          `Status: Authenticated ✓\n\n` +
-          'Token is configured and ready to use.'
-        );
+        // OAuth token exists and is configured
+        return {
+          success: true,
+          message: `✓ OAuth integration verified! Profile "${integration.name}" is authenticated${integration.email ? ` as ${integration.email}` : ''} and ready to use.`
+        };
       } else {
         // Test API Token by validating configuration
         if (!integration.apiToken || !integration.baseUrl) {
-          alert('❌ Test failed:\n\nAPI Token or Base URL is missing.');
-          return;
+          return {
+            success: false,
+            message: 'API Token or Base URL is missing.'
+          };
         }
 
         // Validate URL format
         try {
           new URL(integration.baseUrl);
         } catch {
-          alert('❌ Test failed:\n\nInvalid Base URL format.');
-          return;
+          return {
+            success: false,
+            message: 'Invalid Base URL format.'
+          };
         }
 
         // Configuration looks good
-        alert(
-          '✅ API Token integration configured!\n\n' +
-          `Name: ${integration.name}\n` +
-          `Base URL: ${integration.baseUrl}\n\n` +
-          'Configuration looks valid. Token will be used when making requests.'
-        );
+        return {
+          success: true,
+          message: `✓ Configuration valid! API Token integration "${integration.name}" is configured for ${integration.baseUrl}`
+        };
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      alert(`❌ Test failed:\n\n${errorMessage}`);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Test failed with unknown error'
+      };
     }
   };
 

@@ -11,7 +11,9 @@ import {
     LogIn,
     Edit,
     Activity,
-    Star
+    Star,
+    CheckCircle,
+    AlertCircle
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { cn } from '../../../lib/utils';
@@ -26,7 +28,7 @@ interface IntegrationCardProps {
     onDelete: () => void;
     onReauthenticate?: () => void; // For OAuth
     onEdit?: () => void; // For API Token
-    onTestConnection?: () => Promise<void>; // Test connection
+    onTestConnection?: () => Promise<{ success: boolean; message: string }>; // Test connection
 }
 
 export function IntegrationCard({
@@ -41,6 +43,7 @@ export function IntegrationCard({
 }: IntegrationCardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isTesting, setIsTesting] = useState(false);
+    const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
     const isOAuth = integration.type === 'oauth';
     const isApiToken = integration.type === 'api-token';
@@ -222,23 +225,49 @@ export function IntegrationCard({
                             </Button>
 
                             {onTestConnection && (
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={async () => {
-                                        setIsTesting(true);
-                                        try {
-                                            await onTestConnection();
-                                        } finally {
-                                            setIsTesting(false);
-                                        }
-                                    }}
-                                    disabled={isTesting}
-                                    className="gap-2"
-                                >
-                                    <Activity className={cn("h-3 w-3", isTesting && "animate-pulse")} />
-                                    {isTesting ? 'Testing...' : 'Test Connection'}
-                                </Button>
+                                <div className="flex-1">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={async () => {
+                                            setIsTesting(true);
+                                            setTestResult(null);
+                                            try {
+                                                const result = await onTestConnection();
+                                                setTestResult(result);
+                                            } catch (error) {
+                                                setTestResult({
+                                                    success: false,
+                                                    message: error instanceof Error ? error.message : 'Test failed'
+                                                });
+                                            } finally {
+                                                setIsTesting(false);
+                                            }
+                                        }}
+                                        disabled={isTesting}
+                                        className="gap-2"
+                                    >
+                                        <Activity className={cn("h-3 w-3", isTesting && "animate-pulse")} />
+                                        {isTesting ? 'Testing...' : 'Test Connection'}
+                                    </Button>
+
+                                    {/* Test Result */}
+                                    {testResult && (
+                                        <div className={cn(
+                                            "mt-2 p-2 rounded text-xs flex items-start gap-2",
+                                            testResult.success
+                                                ? "bg-success/10 text-success border border-success/20"
+                                                : "bg-destructive/10 text-destructive border border-destructive/20"
+                                        )}>
+                                            {testResult.success ? (
+                                                <CheckCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                            ) : (
+                                                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                            )}
+                                            <span className="flex-1">{testResult.message}</span>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
 
