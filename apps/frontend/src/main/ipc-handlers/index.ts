@@ -28,6 +28,7 @@ import { registerChangelogHandlers } from './changelog-handlers';
 import { registerInsightsHandlers } from './insights-handlers';
 import { registerMemoryHandlers } from './memory-handlers';
 import { registerAppUpdateHandlers } from './app-update-handlers';
+import { registerIntegrationHandlers } from './integration-handlers';
 import { notificationService } from '../notification-service';
 
 /**
@@ -98,6 +99,9 @@ export function setupIpcHandlers(
   // App auto-update handlers
   registerAppUpdateHandlers();
 
+  // Integration handlers (API token-based integrations)
+  registerIntegrationHandlers();
+
   console.warn('[IPC] All handler modules registered successfully');
 }
 
@@ -119,5 +123,6 @@ export {
   registerChangelogHandlers,
   registerInsightsHandlers,
   registerMemoryHandlers,
-  registerAppUpdateHandlers
+  registerAppUpdateHandlers,
+  registerIntegrationHandlers
 };
