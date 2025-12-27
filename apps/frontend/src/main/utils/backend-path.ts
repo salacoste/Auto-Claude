@@ -4,22 +4,19 @@
  * Provides centralized, validated backend and Python path resolution
  * for integration-related IPC handlers.
  * 
- * Uses existing path-resolver infrastructure and adds:
- * - Path validation
- * - Caching for performance
- * - Clear error messages
+ * Uses similar logic to path-resolver.ts but adapted for integration handlers.
  */
 
 import path from 'path';
 import fs from 'fs';
-import { resolveBackendPath } from '../updater/path-resolver';
+import { getBundledSourcePath } from '../updater/path-resolver';
 
 let cachedBackendPath: string | null = null;
 let cachedPythonPath: string | null = null;
 
 /**
  * Get the backend path for integration handlers.
- * Uses existing path-resolver infrastructure with fallback strategies.
+ * Uses similar logic to path-resolver with fallback strategies.
  * 
  * @returns Absolute path to backend directory
  * @throws Error if backend cannot be located
@@ -29,36 +26,37 @@ export function getBackendPathForIntegrations(): string {
         return cachedBackendPath;
     }
 
-    // Try existing path resolver first (handles dev/prod modes)
-    let backendPath = resolveBackendPath();
+    // Try bundled source path first (handles dev/prod modes)
+    try {
+        const bundledPath = getBundledSourcePath();
+        if (bundledPath && fs.existsSync(path.join(bundledPath, 'providers', 'token_provider.py'))) {
+            cachedBackendPath = bundledPath;
+            return bundledPath;
+        }
+    } catch (error) {
+        // getBundledSourcePath may throw in some environments, continue to fallbacks
+    }
 
-    if (!backendPath) {
-        // Fallback strategies for integration handlers
-        const fallbacks = [
-            // Dev: from dist/main/ipc-handlers → apps/backend
-            path.resolve(__dirname, '..', '..', '..', 'backend'),
-            // Alternative: from app root
-            path.resolve(process.cwd(), 'apps', 'backend'),
-        ];
+    // Fallback strategies
+    const fallbacks = [
+        // Dev: from dist/main/ipc-handlers → apps/backend
+        path.resolve(__dirname, '..', '..', '..', 'backend'),
+        // Alternative: from app root
+        path.resolve(process.cwd(), 'apps', 'backend'),
+    ];
 
-        for (const fallback of fallbacks) {
-            // Validate by checking for marker file
-            if (fs.existsSync(path.join(fallback, 'providers', 'token_provider.py'))) {
-                backendPath = fallback;
-                break;
-            }
+    for (const fallback of fallbacks) {
+        // Validate by checking for marker file
+        if (fs.existsSync(path.join(fallback, 'providers', 'token_provider.py'))) {
+            cachedBackendPath = fallback;
+            return fallback;
         }
     }
 
-    if (!backendPath) {
-        throw new Error(
-            'Backend path not found. Cannot initialize integration handlers.\n' +
-            'Expected backend directory with providers/token_provider.py'
-        );
-    }
-
-    cachedBackendPath = backendPath;
-    return backendPath;
+    throw new Error(
+        'Backend path not found. Cannot initialize integration handlers.\n' +
+        'Expected backend directory with providers/token_provider.py'
+    );
 }
 
 /**
