@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     ChevronDown,
     ChevronRight,
@@ -44,6 +44,16 @@ export function IntegrationCard({
     const [isExpanded, setIsExpanded] = useState(false);
     const [isTesting, setIsTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+    // Auto-dismiss test result after 5 seconds
+    useEffect(() => {
+        if (testResult) {
+            const timer = setTimeout(() => {
+                setTestResult(null);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [testResult]);
 
     const isOAuth = integration.type === 'oauth';
     const isApiToken = integration.type === 'api-token';
@@ -212,8 +222,8 @@ export function IntegrationCard({
                     )}
 
                     {/* Actions */}
-                    <div className="flex items-center justify-between pt-2 border-t border-border">
-                        <div className="flex items-center gap-2">
+                    <div className="border-t border-border pt-3 mt-3">
+                        <div className="flex items-center justify-between gap-2">
                             <Button
                                 size="sm"
                                 variant="ghost"
@@ -224,62 +234,63 @@ export function IntegrationCard({
                                 Delete
                             </Button>
 
-                            {onTestConnection && (
-                                <div className="flex-1">
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={async () => {
-                                            setIsTesting(true);
-                                            setTestResult(null);
-                                            try {
-                                                const result = await onTestConnection();
-                                                setTestResult(result);
-                                            } catch (error) {
-                                                setTestResult({
-                                                    success: false,
-                                                    message: error instanceof Error ? error.message : 'Test failed'
-                                                });
-                                            } finally {
-                                                setIsTesting(false);
-                                            }
-                                        }}
-                                        disabled={isTesting}
-                                        className="gap-2"
-                                    >
-                                        <Activity className={cn("h-3 w-3", isTesting && "animate-pulse")} />
-                                        {isTesting ? 'Testing...' : 'Test Connection'}
-                                    </Button>
-
-                                    {/* Test Result */}
-                                    {testResult && (
-                                        <div className={cn(
-                                            "mt-2 p-2 rounded text-xs flex items-start gap-2",
-                                            testResult.success
-                                                ? "bg-success/10 text-success border border-success/20"
-                                                : "bg-destructive/10 text-destructive border border-destructive/20"
-                                        )}>
-                                            {testResult.success ? (
-                                                <CheckCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                                            ) : (
-                                                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                                            )}
-                                            <span className="flex-1">{testResult.message}</span>
-                                        </div>
-                                    )}
-                                </div>
+                            {!isActive && (
+                                <Button
+                                    size="sm"
+                                    onClick={onSetActive}
+                                    className="gap-2"
+                                >
+                                    <Check className="h-3 w-3" />
+                                    Set Active
+                                </Button>
                             )}
                         </div>
 
-                        {!isActive && (
-                            <Button
-                                size="sm"
-                                onClick={onSetActive}
-                                className="gap-2"
-                            >
-                                <Check className="h-3 w-3" />
-                                Set Active
-                            </Button>
+                        {/* Test Connection Section */}
+                        {onTestConnection && (
+                            <div className="mt-3">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={async () => {
+                                        setIsTesting(true);
+                                        setTestResult(null);
+                                        try {
+                                            const result = await onTestConnection();
+                                            setTestResult(result);
+                                        } catch (error) {
+                                            setTestResult({
+                                                success: false,
+                                                message: error instanceof Error ? error.message : 'Test failed'
+                                            });
+                                        } finally {
+                                            setIsTesting(false);
+                                        }
+                                    }}
+                                    disabled={isTesting}
+                                    className="gap-2 w-full"
+                                >
+                                    <Activity className={cn("h-3 w-3", isTesting && "animate-pulse")} />
+                                    {isTesting ? 'Testing...' : 'Test Connection'}
+                                </Button>
+
+                                {/* Test Result */}
+                                {testResult && (
+                                    <div className={cn(
+                                        "mt-2 p-2 rounded text-xs flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-200",
+                                        testResult.success
+                                            ? "bg-success/10 text-success border border-success/20"
+                                            : "bg-destructive/10 text-destructive border border-destructive/20"
+                                    )}>
+                                        {testResult.success ? (
+                                            <CheckCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                        ) : (
+                                            <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                        )}
+                                        <span className="flex-1">{testResult.message}</span>
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>

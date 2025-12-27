@@ -53,13 +53,13 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
   // OAuth creation state
   const [isCreatingOAuth, setIsCreatingOAuth] = useState(false);
 
-  // Load integrations and Claude profiles when section is shown
+  // Load integrations when component mounts or settings change
   useEffect(() => {
     if (isOpen) {
       loadIntegrations();
       loadClaudeProfiles();
     }
-  }, [isOpen]);
+  }, [isOpen, settings.integrations, settings.activeIntegrationId]); // Re-load when settings change
 
   // Listen for OAuth authentication completion
   useEffect(() => {
