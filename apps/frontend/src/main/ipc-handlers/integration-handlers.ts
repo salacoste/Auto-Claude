@@ -14,7 +14,7 @@ async function testApiConnection(
 ): Promise<IPCResult<{ status: string; message: string }>> {
     return new Promise((resolve) => {
         try {
-            const backendPath = path.join(__dirname, '..', '..', '..', '..', 'backend');
+            const backendPath = path.join(__dirname, '..', '..', '..', 'backend');
             const pythonScript = path.join(backendPath, 'providers', 'token_provider.py');
             const pythonPath = getPythonPath(backendPath);
 
@@ -86,7 +86,7 @@ async function getApiModels(
 ): Promise<IPCResult<{ status: string; models?: string[]; message?: string }>> {
     return new Promise((resolve) => {
         try {
-            const backendPath = path.join(__dirname, '..', '..', '..', '..', 'backend');
+            const backendPath = path.join(__dirname, '..', '..', '..', 'backend');
             const pythonPath = getPythonPath(backendPath);
 
             const python = spawn(pythonPath, [
