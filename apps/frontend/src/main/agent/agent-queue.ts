@@ -8,7 +8,8 @@ import { AgentProcessManager } from './agent-process';
 import { RoadmapConfig } from './types';
 import type { IdeationConfig, Idea } from '../../shared/types';
 import { MODEL_ID_MAP } from '../../shared/constants';
-import { detectRateLimit, createSDKRateLimitInfo, getProfileEnv } from '../rate-limit-detector';
+import { detectRateLimit, createSDKRateLimitInfo } from '../rate-limit-detector';
+import { getActiveIntegrationEnv } from '../integration-env';
 import { debugLog, debugError } from '../../shared/utils/debug-logger';
 import { parsePythonCommand } from '../python-detector';
 import { transformIdeaFromSnakeCase, transformSessionFromSnakeCase } from '../ipc-handlers/ideation/transformers';
@@ -210,8 +211,8 @@ export class AgentQueueManager {
     // Get combined environment variables
     const combinedEnv = this.processManager.getCombinedEnv(projectPath);
 
-    // Get active Claude profile environment (CLAUDE_CODE_OAUTH_TOKEN if not default)
-    const profileEnv = getProfileEnv();
+    // Get active integration environment (API Token or OAuth)
+    const integrationEnv = getActiveIntegrationEnv();
 
     // Get Python path from process manager (uses venv if configured)
     const pythonPath = this.processManager.getPythonPath();
@@ -219,28 +220,27 @@ export class AgentQueueManager {
     // Build final environment with proper precedence:
     // 1. process.env (system)
     // 2. combinedEnv (auto-claude/.env for CLI usage)
-    // 3. profileEnv (Electron app OAuth token - highest priority)
+    // 3. integrationEnv (Active integration - highest priority)
     // 4. Our specific overrides
     const finalEnv = {
       ...process.env,
       ...combinedEnv,
-      ...profileEnv,
+      ...integrationEnv,
       PYTHONPATH: autoBuildSource || '', // Allow imports from auto-claude directory
       PYTHONUNBUFFERED: '1',
       PYTHONIOENCODING: 'utf-8',
       PYTHONUTF8: '1'
     };
 
-    // Debug: Show OAuth token source
-    const tokenSource = profileEnv['CLAUDE_CODE_OAUTH_TOKEN']
-      ? 'Electron app profile'
-      : (combinedEnv['CLAUDE_CODE_OAUTH_TOKEN'] ? 'auto-claude/.env' : 'not found');
-    const oauthToken = (finalEnv as Record<string, string | undefined>)['CLAUDE_CODE_OAUTH_TOKEN'];
-    const hasToken = !!oauthToken;
-    debugLog('[Agent Queue] OAuth token status:', {
-      source: tokenSource,
-      hasToken,
-      tokenPreview: hasToken ? oauthToken?.substring(0, 20) + '...' : 'none'
+    // Debug: Show auth method
+    const authMethod = integrationEnv.ANTHROPIC_API_KEY
+      ? 'API Token Integration'
+      : (integrationEnv.CLAUDE_CODE_OAUTH_TOKEN ? 'OAuth Integration' : 'default (.env)');
+    const hasAuth = !!(integrationEnv.ANTHROPIC_API_KEY || integrationEnv.CLAUDE_CODE_OAUTH_TOKEN);
+    debugLog('[Agent Queue] Auth status:', {
+      method: authMethod,
+      hasAuth,
+      baseUrl: integrationEnv.ANTHROPIC_BASE_URL || 'anthropic.com'
     });
 
     // Parse Python command to handle space-separated commands like "py -3"
@@ -508,8 +508,8 @@ export class AgentQueueManager {
     // Get combined environment variables
     const combinedEnv = this.processManager.getCombinedEnv(projectPath);
 
-    // Get active Claude profile environment (CLAUDE_CODE_OAUTH_TOKEN if not default)
-    const profileEnv = getProfileEnv();
+    // Get active integration environment (API Token or OAuth)
+    const integrationEnv = getActiveIntegrationEnv();
 
     // Get Python path from process manager (uses venv if configured)
     const pythonPath = this.processManager.getPythonPath();
@@ -517,28 +517,27 @@ export class AgentQueueManager {
     // Build final environment with proper precedence:
     // 1. process.env (system)
     // 2. combinedEnv (auto-claude/.env for CLI usage)
-    // 3. profileEnv (Electron app OAuth token - highest priority)
+    // 3. integrationEnv (Active integration - highest priority)
     // 4. Our specific overrides
     const finalEnv = {
       ...process.env,
       ...combinedEnv,
-      ...profileEnv,
+      ...integrationEnv,
       PYTHONPATH: autoBuildSource || '', // Allow imports from auto-claude directory
       PYTHONUNBUFFERED: '1',
       PYTHONIOENCODING: 'utf-8',
       PYTHONUTF8: '1'
     };
 
-    // Debug: Show OAuth token source
-    const tokenSource = profileEnv['CLAUDE_CODE_OAUTH_TOKEN']
-      ? 'Electron app profile'
-      : (combinedEnv['CLAUDE_CODE_OAUTH_TOKEN'] ? 'auto-claude/.env' : 'not found');
-    const oauthToken = (finalEnv as Record<string, string | undefined>)['CLAUDE_CODE_OAUTH_TOKEN'];
-    const hasToken = !!oauthToken;
-    debugLog('[Agent Queue] OAuth token status:', {
-      source: tokenSource,
-      hasToken,
-      tokenPreview: hasToken ? oauthToken?.substring(0, 20) + '...' : 'none'
+    // Debug: Show auth method
+    const authMethod = integrationEnv.ANTHROPIC_API_KEY
+      ? 'API Token Integration'
+      : (integrationEnv.CLAUDE_CODE_OAUTH_TOKEN ? 'OAuth Integration' : 'default (.env)');
+    const hasAuth = !!(integrationEnv.ANTHROPIC_API_KEY || integrationEnv.CLAUDE_CODE_OAUTH_TOKEN);
+    debugLog('[Agent Queue] Auth status:', {
+      method: authMethod,
+      hasAuth,
+      baseUrl: integrationEnv.ANTHROPIC_BASE_URL || 'anthropic.com'
     });
 
     // Parse Python command to handle space-separated commands like "py -3"

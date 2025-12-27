@@ -94,12 +94,10 @@ def get_auth_token() -> str | None:
 
     Checks multiple sources in priority order:
     1. Active API token integration (from Electron settings)
-    2. CLAUDE_CODE_OAUTH_TOKEN (env var)
-    3. ANTHROPIC_AUTH_TOKEN (CCR/proxy env var for enterprise setups)
-    4. macOS Keychain (if on Darwin platform)
-
-    NOTE: ANTHROPIC_API_KEY is intentionally NOT supported to prevent
-    silent billing to user's API credits when OAuth is misconfigured.
+    2. ANTHROPIC_API_KEY (env var - for API Token integrations)
+    3. CLAUDE_CODE_OAUTH_TOKEN (env var - for OAuth integrations)
+    4. ANTHROPIC_AUTH_TOKEN (CCR/proxy env var for enterprise setups)
+    5. macOS Keychain (if on Darwin platform)
 
     Returns:
         Token string if found, None otherwise
