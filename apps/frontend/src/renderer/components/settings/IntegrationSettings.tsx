@@ -115,7 +115,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
 
   const loadIntegrations = () => {
     setIntegrations(settings.integrations || []);
-    setActiveIntegrationId(settings.activeIntegrationId || null);
+    setActiveIntegrationId(settings.activeIntegrationId);
   };
 
   const loadClaudeProfiles = async () => {
@@ -466,4 +466,3 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     </SettingsSection>
   );
 }
-```
