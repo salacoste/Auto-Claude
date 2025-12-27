@@ -1,9 +1,8 @@
 import { ipcMain } from 'electron';
 import { spawn } from 'child_process';
-import path from 'path';
 import { IPC_CHANNELS } from '../../shared/constants';
 import type { IPCResult } from '../../shared/types';
-import { getPythonPath } from './github/utils/subprocess-runner';
+import { getPythonPathForIntegrations } from '../utils/backend-path';
 
 /**
  * Call Python backend to test API token connection
@@ -14,9 +13,7 @@ async function testApiConnection(
 ): Promise<IPCResult<{ status: string; message: string }>> {
     return new Promise((resolve) => {
         try {
-            const backendPath = path.join(__dirname, '..', '..', '..', 'backend');
-            const pythonScript = path.join(backendPath, 'providers', 'token_provider.py');
-            const pythonPath = getPythonPath(backendPath);
+            const pythonPath = getPythonPathForIntegrations();
 
             const python = spawn(pythonPath, [
                 '-c',
@@ -86,8 +83,7 @@ async function getApiModels(
 ): Promise<IPCResult<{ status: string; models?: string[]; message?: string }>> {
     return new Promise((resolve) => {
         try {
-            const backendPath = path.join(__dirname, '..', '..', '..', 'backend');
-            const pythonPath = getPythonPath(backendPath);
+            const pythonPath = getPythonPathForIntegrations();
 
             const python = spawn(pythonPath, [
                 '-c',
@@ -156,8 +152,7 @@ async function testOAuthConnection(
 ): Promise<IPCResult<{ status: string; message: string }>> {
     return new Promise((resolve) => {
         try {
-            const backendPath = path.join(__dirname, '..', '..', '..', 'backend');
-            const pythonPath = getPythonPath(backendPath);
+            const pythonPath = getPythonPathForIntegrations();
 
             const python = spawn(pythonPath, [
                 '-c',
