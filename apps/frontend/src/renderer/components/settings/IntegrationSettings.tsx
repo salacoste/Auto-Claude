@@ -335,20 +335,27 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
           'Token is configured and ready to use.'
         );
       } else {
-        // Test API Token by calling backend test endpoint
-        const result = await window.electronAPI.testIntegrationConnection({
-          apiToken: integration.apiToken,
-          baseUrl: integration.baseUrl
-        });
-
-        if (result.success && result.data) {
-          alert(
-            '✅ Connection successful!\n\n' +
-            (result.data.message || 'API is responding correctly.')
-          );
-        } else {
-          alert(`❌ Connection failed:\n\n${result.error || 'Unknown error'}`);
+        // Test API Token by validating configuration
+        if (!integration.apiToken || !integration.baseUrl) {
+          alert('❌ Test failed:\n\nAPI Token or Base URL is missing.');
+          return;
         }
+
+        // Validate URL format
+        try {
+          new URL(integration.baseUrl);
+        } catch {
+          alert('❌ Test failed:\n\nInvalid Base URL format.');
+          return;
+        }
+
+        // Configuration looks good
+        alert(
+          '✅ API Token integration configured!\n\n' +
+          `Name: ${integration.name}\n` +
+          `Base URL: ${integration.baseUrl}\n\n` +
+          'Configuration looks valid. Token will be used when making requests.'
+        );
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

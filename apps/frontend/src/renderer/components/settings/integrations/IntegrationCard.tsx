@@ -72,14 +72,34 @@ export function IntegrationCard({
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-sm font-medium truncate">{integration.name}</p>
+
+                                {/* Active Badge */}
                                 {isActive && (
-                                    <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded">
+                                    <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded flex items-center gap-1">
+                                        <Star className="h-3 w-3" fill="currentColor" />
                                         Active
                                     </span>
                                 )}
+
+                                {/* Authenticated Badge (OAuth only) */}
+                                {isOAuth && integration.isAuthenticated && (
+                                    <span className="text-xs bg-success/20 text-success px-1.5 py-0.5 rounded flex items-center gap-1">
+                                        <Check className="h-3 w-3" />
+                                        Authenticated
+                                    </span>
+                                )}
+
+                                {/* Needs Auth Badge (OAuth only) */}
+                                {isOAuth && !integration.isAuthenticated && (
+                                    <span className="text-xs bg-warning/20 text-warning px-1.5 py-0.5 rounded">
+                                        Needs Auth
+                                    </span>
+                                )}
                             </div>
+
+                            {/* Subtitle */}
                             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                                 <span>{isOAuth ? 'OAuth' : 'API Token'}</span>
                                 {isOAuth && integration.email && (
@@ -88,18 +108,10 @@ export function IntegrationCard({
                                         <span>{integration.email}</span>
                                     </>
                                 )}
-                                {isOAuth && (
-                                    <>
-                                        <span>•</span>
-                                        <span className={integration.isAuthenticated ? 'text-success' : 'text-warning'}>
-                                            {integration.isAuthenticated ? 'Authenticated' : 'Not authenticated'}
-                                        </span>
-                                    </>
-                                )}
                                 {isApiToken && integration.description && (
                                     <>
                                         <span>•</span>
-                                        <span>{integration.description}</span>
+                                        <span className="truncate">{integration.description}</span>
                                     </>
                                 )}
                             </div>
