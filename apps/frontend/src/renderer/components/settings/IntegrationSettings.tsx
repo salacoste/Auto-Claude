@@ -202,197 +202,76 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     }
   };
 
-  const handleDeleteProfile = async (profileId: string) => {
-    setDeletingProfileId(profileId);
-    try {
-      const result = await window.electronAPI.deleteClaudeProfile(profileId);
-      if (result.success) {
-        await loadClaudeProfiles();
-      }
-    } catch (err) {
-      console.error('Failed to delete profile:', err);
-    } finally {
-      setDeletingProfileId(null);
-    }
-  };
 
-  const startEditingProfile = (profile: ClaudeProfile) => {
-    setEditingProfileId(profile.id);
-    setEditingProfileName(profile.name);
-  };
-
-  const cancelEditingProfile = () => {
-    setEditingProfileId(null);
-    setEditingProfileName('');
-  };
-
-  const handleRenameProfile = async () => {
-    if (!editingProfileId || !editingProfileName.trim()) return;
-
-    try {
-      const result = await window.electronAPI.renameClaudeProfile(editingProfileId, editingProfileName.trim());
-      if (result.success) {
-        await loadClaudeProfiles();
-      }
-    } catch (err) {
-      console.error('Failed to rename profile:', err);
-    } finally {
-      setEditingProfileId(null);
-      setEditingProfileName('');
-    }
-  };
-
-  const handleSetActiveProfile = async (profileId: string) => {
-    try {
-      const result = await window.electronAPI.setActiveClaudeProfile(profileId);
-      if (result.success) {
-        setActiveProfileId(profileId);
-        await loadGlobalClaudeProfiles();
-      }
-    } catch (err) {
-      console.error('Failed to set active profile:', err);
-    }
-  };
-
-  const handleAuthenticateProfile = async (profileId: string) => {
-    setAuthenticatingProfileId(profileId);
-    try {
-      const initResult = await window.electronAPI.initializeClaudeProfile(profileId);
-      if (initResult.success) {
-        alert(
-          `Authenticating profile...\n\n` +
-          `A browser window will open for you to log in with your Claude account.\n\n` +
-          `The authentication will be saved automatically once complete.`
-        );
-      } else {
-        alert(`Failed to start authentication: ${initResult.error || 'Please try again.'}`);
-      }
-    } catch (err) {
-      console.error('Failed to authenticate profile:', err);
-      alert('Failed to start authentication. Please try again.');
-    } finally {
-      setAuthenticatingProfileId(null);
-    }
-  };
-
-  const toggleTokenEntry = (profileId: string) => {
-    if (expandedTokenProfileId === profileId) {
-      setExpandedTokenProfileId(null);
-      setManualToken('');
-      setManualTokenEmail('');
-      setShowManualToken(false);
-    } else {
-      setExpandedTokenProfileId(profileId);
-      setManualToken('');
-      setManualTokenEmail('');
-      setShowManualToken(false);
-    }
-  };
-
-  const handleSaveManualToken = async (profileId: string) => {
-    if (!manualToken.trim()) return;
-
-    setSavingTokenProfileId(profileId);
-    try {
-      const result = await window.electronAPI.setClaudeProfileToken(
-        profileId,
-        manualToken.trim(),
-        manualTokenEmail.trim() || undefined
-      );
-      if (result.success) {
-        await loadClaudeProfiles();
-        setExpandedTokenProfileId(null);
-        setManualToken('');
-        setManualTokenEmail('');
-        setShowManualToken(false);
-      } else {
-        alert(`Failed to save token: ${result.error || 'Please try again.'}`);
-      }
-    } catch (err) {
-      console.error('Failed to save token:', err);
-      alert('Failed to save token. Please try again.');
-    } finally {
-      setSavingTokenProfileId(null);
-    }
-  };
-
-  // Load auto-swap settings
-  const loadAutoSwitchSettings = async () => {
-    setIsLoadingAutoSwitch(true);
-    try {
-      const result = await window.electronAPI.getAutoSwitchSettings();
-      if (result.success && result.data) {
-        setAutoSwitchSettings(result.data);
-      }
-    } catch (err) {
-      console.error('Failed to load auto-switch settings:', err);
-    } finally {
-      setIsLoadingAutoSwitch(false);
-    }
-  };
-
-  // Update auto-swap settings
-  const handleUpdateAutoSwitch = async (updates: Partial<ClaudeAutoSwitchSettings>) => {
-    setIsLoadingAutoSwitch(true);
-    try {
-      const result = await window.electronAPI.updateAutoSwitchSettings(updates);
-      if (result.success) {
-        await loadAutoSwitchSettings();
-      } else {
-        alert(`Failed to update settings: ${result.error || 'Please try again.'}`);
-      }
-    } catch (err) {
-      console.error('Failed to update auto-switch settings:', err);
-      alert('Failed to update settings. Please try again.');
-    } finally {
-      setIsLoadingAutoSwitch(false);
-    }
-  };
-
-  // API Token Integration handlers
-  const handleSaveIntegration = (data: {
+  // API Token integration handlers
+  const handleSaveApiTokenIntegration = (data: {
     name: string;
     description: string;
     apiToken: string;
     baseUrl: string;
     modelMapping?: import('../../../shared/types/integration').ModelMapping;
   }) => {
-    const integrationId = `api-${Date.now()}`;
-    const newIntegration: Integration = {
-      id: integrationId,
+    const apiTokenIntegration: ApiTokenIntegration = {
+      id: `api-${Date.now()}`,
       type: 'api-token',
       name: data.name,
       description: data.description,
       apiToken: data.apiToken,
       baseUrl: data.baseUrl,
       modelMapping: data.modelMapping,
-      isActive: Object.keys(integrations).length === 0, // First integration is active
       createdAt: new Date().toISOString()
     };
 
-    const updatedIntegrations = {
-      ...integrations,
-      [integrationId]: newIntegration
-    };
+    const updatedIntegrations = [...integrations, apiTokenIntegration];
+
+    setIntegrations(updatedIntegrations);
+    onSettingsChange({
+      ...settings,
+      integrations: updatedIntegrations
+    });
+
+    setShowApiTokenForm(false);
+    setApiTokenFormName('');
+    setNewIntegrationName('');
+  };
+
+  const handleCancelApiTokenForm = () => {
+    setShowApiTokenForm(false);
+    setApiTokenFormName('');
+    setNewIntegrationName('');
+  };
+
+  // Common integration handlers
+  const handleSetActive = (integrationId: string) => {
+    setActiveIntegrationId(integrationId);
+    onSettingsChange({
+      ...settings,
+      activeIntegrationId: integrationId
+    });
+  };
+
+  const handleDeleteIntegration = async (integrationId: string) => {
+    const integration = integrations.find(i => i.id === integrationId);
+    if (!integration) return;
+
+    if (!confirm(`Delete integration "${integration.name}"?`)) return;
+
+    // If OAuth, also delete Claude profile
+    if (integration.type === 'oauth') {
+      try {
+        await window.electronAPI.deleteClaudeProfile(integration.profileId);
+      } catch (err) {
+        console.error('Failed to delete Claude profile:', err);
+      }
+    }
+
+    const updatedIntegrations = integrations.filter(i => i.id !== integrationId);
 
     setIntegrations(updatedIntegrations);
     onSettingsChange({
       ...settings,
       integrations: updatedIntegrations,
-      activeIntegrationId: newIntegration.isActive ? integrationId : settings.activeIntegrationId
-    });
-    setShowApiTokenForm(false);
-  };
-
-  const handleDeleteIntegration = (integrationId: string) => {
-    const updated = { ...integrations };
-    delete updated[integrationId];
-    setIntegrations(updated);
-
-    onSettingsChange({
-      ...settings,
-      integrations: updated,
-      activeIntegrationId: settings.activeIntegrationId === integrationId ? undefined : settings.activeIntegrationId
+      activeIntegrationId: activeIntegrationId === integrationId ? undefined : activeIntegrationId
     });
   };
 
