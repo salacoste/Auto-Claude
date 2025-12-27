@@ -265,13 +265,19 @@ export function IntegrationCard({
                                                     value={modelMapping?.opus || ''}
                                                     onChange={(e) => {
                                                         const value = e.target.value;
-                                                        const newMapping = { ...modelMapping };
                                                         if (value) {
-                                                            newMapping.opus = value;
+                                                            // Add opus to mapping
+                                                            setModelMapping({
+                                                                ...(modelMapping || {}),
+                                                                opus: value
+                                                            } as { opus: string; sonnet?: string; haiku?: string });
                                                         } else {
-                                                            delete newMapping.opus;
+                                                            // Remove opus from mapping
+                                                            if (modelMapping) {
+                                                                const { opus, ...rest } = modelMapping;
+                                                                setModelMapping(Object.keys(rest).length > 0 ? rest as any : undefined);
+                                                            }
                                                         }
-                                                        setModelMapping(Object.keys(newMapping).length > 0 ? newMapping : undefined);
                                                     }}
                                                     className="w-full mt-1 h-8 px-2 text-xs rounded border border-input bg-background"
                                                 >
@@ -291,13 +297,19 @@ export function IntegrationCard({
                                                     value={modelMapping?.sonnet || ''}
                                                     onChange={(e) => {
                                                         const value = e.target.value;
-                                                        const newMapping = { ...modelMapping };
                                                         if (value) {
-                                                            newMapping.sonnet = value;
+                                                            // Add sonnet to mapping
+                                                            setModelMapping({
+                                                                ...(modelMapping || {}),
+                                                                sonnet: value
+                                                            } as { opus?: string; sonnet: string; haiku?: string });
                                                         } else {
-                                                            delete newMapping.sonnet;
+                                                            // Remove sonnet from mapping
+                                                            if (modelMapping) {
+                                                                const { sonnet, ...rest } = modelMapping;
+                                                                setModelMapping(Object.keys(rest).length > 0 ? rest as any : undefined);
+                                                            }
                                                         }
-                                                        setModelMapping(Object.keys(newMapping).length > 0 ? newMapping : undefined);
                                                     }}
                                                     className="w-full mt-1 h-8 px-2 text-xs rounded border border-input bg-background"
                                                 >
@@ -317,13 +329,19 @@ export function IntegrationCard({
                                                     value={modelMapping?.haiku || ''}
                                                     onChange={(e) => {
                                                         const value = e.target.value;
-                                                        const newMapping = { ...modelMapping };
                                                         if (value) {
-                                                            newMapping.haiku = value;
+                                                            // Add haiku to mapping
+                                                            setModelMapping({
+                                                                ...(modelMapping || {}),
+                                                                haiku: value
+                                                            } as { opus?: string; sonnet?: string; haiku: string });
                                                         } else {
-                                                            delete newMapping.haiku;
+                                                            // Remove haiku from mapping
+                                                            if (modelMapping) {
+                                                                const { haiku, ...rest } = modelMapping;
+                                                                setModelMapping(Object.keys(rest).length > 0 ? rest as any : undefined);
+                                                            }
                                                         }
-                                                        setModelMapping(Object.keys(newMapping).length > 0 ? newMapping : undefined);
                                                     }}
                                                     className="w-full mt-1 h-8 px-2 text-xs rounded border border-input bg-background"
                                                 >
