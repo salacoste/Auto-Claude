@@ -27,6 +27,8 @@ export function getBackendPathForIntegrations(): string {
     }
 
     // Try bundled source path first (handles dev/prod modes)
+    let backendPath: string | null = null;
+
     try {
         const bundledPath = getBundledSourcePath();
         if (bundledPath && fs.existsSync(path.join(bundledPath, 'providers', 'token_provider.py'))) {
@@ -35,28 +37,33 @@ export function getBackendPathForIntegrations(): string {
         }
     } catch (error) {
         // getBundledSourcePath may throw in some environments, continue to fallbacks
+        console.log('[backend-path] getBundledSourcePath failed, trying fallbacks:', error);
     }
 
     // Fallback strategies
     const fallbacks = [
-        // Dev: from dist/main/ipc-handlers → apps/backend
+        // Dev: from dist/main → apps/backend (NOT dist/main/ipc-handlers!)
         path.resolve(__dirname, '..', '..', '..', 'backend'),
         // Alternative: from app root
         path.resolve(process.cwd(), 'apps', 'backend'),
     ];
 
     for (const fallback of fallbacks) {
+        console.log('[backend-path] Trying fallback:', fallback);
         // Validate by checking for marker file
         if (fs.existsSync(path.join(fallback, 'providers', 'token_provider.py'))) {
+            console.log('[backend-path] Found backend at:', fallback);
             cachedBackendPath = fallback;
             return fallback;
         }
     }
 
-    throw new Error(
+    const errorMsg =
         'Backend path not found. Cannot initialize integration handlers.\n' +
-        'Expected backend directory with providers/token_provider.py'
-    );
+        'Expected backend directory with providers/token_provider.py\n' +
+        `Tried: ${fallbacks.join(', ')}`;
+    console.error('[backend-path]', errorMsg);
+    throw new Error(errorMsg);
 }
 
 /**
