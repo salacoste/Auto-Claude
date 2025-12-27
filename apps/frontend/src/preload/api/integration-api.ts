@@ -26,14 +26,24 @@ export interface IntegrationAPI {
         apiToken: string,
         baseUrl: string
     ) => Promise<IPCResult<GetModelsResponse>>;
+
+    /**
+     * Test OAuth token connection
+     */
+    testOAuthToken: (
+        oauthToken: string
+    ) => Promise<IPCResult<TestTokenResponse>>;
 }
 
 export function createIntegrationAPI(): IntegrationAPI {
     return {
         testApiToken: (apiToken: string, baseUrl: string) =>
-            ipcRenderer.invoke(IPC_CHANNELS.INTEGRATION_TEST_TOKEN, { apiToken, baseUrl }),
+            ipcRenderer.invoke(IPC_CHANNELS.INTEGRATION_TEST_TOKEN, apiToken, baseUrl),
 
         getApiModels: (apiToken: string, baseUrl: string) =>
-            ipcRenderer.invoke(IPC_CHANNELS.INTEGRATION_GET_MODELS, { apiToken, baseUrl })
+            ipcRenderer.invoke(IPC_CHANNELS.INTEGRATION_GET_MODELS, apiToken, baseUrl),
+
+        testOAuthToken: (oauthToken: string) =>
+            ipcRenderer.invoke(IPC_CHANNELS.INTEGRATION_TEST_OAUTH, oauthToken)
     };
 }

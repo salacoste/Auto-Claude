@@ -602,6 +602,7 @@ export interface ElectronAPI {
   // Integration API operations
   testApiToken: (apiToken: string, baseUrl: string) => Promise<IPCResult<import('./integration').TestTokenResponse>>;
   getApiModels: (apiToken: string, baseUrl: string) => Promise<IPCResult<import('./integration').GetModelsResponse>>;
+  testOAuthToken: (oauthToken: string) => Promise<IPCResult<import('./integration').TestTokenResponse>>;
 }
 
 declare global {

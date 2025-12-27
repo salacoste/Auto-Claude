@@ -214,3 +214,18 @@ def get_models_sync(api_token: str, base_url: str) -> dict[str, Any]:
     """
     provider = TokenProvider(api_token, base_url)
     return asyncio.run(provider.get_models())
+
+
+def test_oauth_connection_sync(oauth_token: str) -> dict[str, Any]:
+    """
+    Test OAuth connection with real API call.
+
+    Args:
+        oauth_token: OAuth authentication token
+
+    Returns:
+        Connection test result
+    """
+    # OAuth uses standard Anthropic API endpoint
+    provider = TokenProvider(oauth_token, "https://api.anthropic.com")
+    return asyncio.run(provider.test_connection())

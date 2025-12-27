@@ -312,7 +312,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
   const handleTestConnection = async (integration: UnifiedIntegration): Promise<{ success: boolean; message: string }> => {
     try {
       if (integration.type === 'oauth') {
-        // Test OAuth by checking if profile has valid token
+        // Test OAuth by making REAL API request via backend
         const profile = claudeProfiles[integration.profileId];
 
         if (!profile) {
@@ -329,11 +329,35 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
           };
         }
 
-        // OAuth token exists and is configured
-        return {
-          success: true,
-          message: `✓ OAuth integration verified! Profile "${integration.name}" is authenticated${integration.email ? ` as ${integration.email}` : ''} and ready to use.`
-        };
+        // Make REAL API call via Python backend
+        try {
+          const result = await window.electronAPI.testOAuthToken(profile.oauthToken);
+
+          if (result.success && result.data) {
+            if (result.data.status === 'success') {
+              return {
+                success: true,
+                message: `✓ Connection successful! OAuth integration "${integration.name}" is verified${integration.email ? ` as ${integration.email}` : ''} and ready to use.`
+              };
+            } else {
+              return {
+                success: false,
+                message: result.data.message || 'Connection test failed'
+              };
+            }
+          } else {
+            return {
+              success: false,
+              message: result.error || 'Failed to test connection'
+            };
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          return {
+            success: false,
+            message: `Connection test failed: ${errorMessage}`
+          };
+        }
       } else {
         // Test API Token by making REAL API request via backend
         if (!integration.apiToken || !integration.baseUrl) {

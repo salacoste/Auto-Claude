@@ -365,5 +365,6 @@ export const IPC_CHANNELS = {
 
   // Integration operations (API Token-based integrations)
   INTEGRATION_TEST_TOKEN: 'integration:testToken',
-  INTEGRATION_GET_MODELS: 'integration:getModels'
+  INTEGRATION_GET_MODELS: 'integration:getModels',
+  INTEGRATION_TEST_OAUTH: 'integration:testOAuth'
 } as const;
