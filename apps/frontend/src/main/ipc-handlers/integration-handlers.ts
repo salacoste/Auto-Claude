@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { IPC_CHANNELS } from '../../shared/constants';
 import type { IPCResult } from '../../shared/types';
+import { getPythonPath } from './github/utils/subprocess-runner';
 
 /**
  * Call Python backend to test API token connection
@@ -15,8 +16,9 @@ async function testApiConnection(
         try {
             const backendPath = path.join(__dirname, '..', '..', '..', '..', 'backend');
             const pythonScript = path.join(backendPath, 'providers', 'token_provider.py');
+            const pythonPath = getPythonPath(backendPath);
 
-            const python = spawn('python3', [
+            const python = spawn(pythonPath, [
                 '-c',
                 `
 from providers.token_provider import test_connection_sync
@@ -85,8 +87,9 @@ async function getApiModels(
     return new Promise((resolve) => {
         try {
             const backendPath = path.join(__dirname, '..', '..', '..', '..', 'backend');
+            const pythonPath = getPythonPath(backendPath);
 
-            const python = spawn('python3', [
+            const python = spawn(pythonPath, [
                 '-c',
                 `
 from providers.token_provider import get_models_sync
@@ -154,8 +157,9 @@ async function testOAuthConnection(
     return new Promise((resolve) => {
         try {
             const backendPath = path.join(__dirname, '..', '..', '..', '..', 'backend');
+            const pythonPath = getPythonPath(backendPath);
 
-            const python = spawn('python3', [
+            const python = spawn(pythonPath, [
                 '-c',
                 `
 from providers.token_provider import test_oauth_connection_sync
