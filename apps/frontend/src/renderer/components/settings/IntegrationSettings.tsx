@@ -896,7 +896,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
                   onSave={(data) => {
                     handleSaveIntegration(data);
                   }}
-                  onCancel={handleCancelApiTokenForm}
+                  onCancel={() => setShowApiTokenForm(false)}
                 />
               </div>
             ) : (
@@ -915,4 +915,3 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     </SettingsSection>
   );
 }
-```
