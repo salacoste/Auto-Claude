@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 import { spawn } from 'child_process';
 import { IPC_CHANNELS } from '../../shared/constants';
 import type { IPCResult } from '../../shared/types';
-import { getPythonPathForIntegrations } from '../utils/backend-path';
+import { getBackendPathForIntegrations, getPythonPathForIntegrations } from '../utils/backend-path';
 
 /**
  * Call Python backend to test API token connection
@@ -13,6 +13,7 @@ async function testApiConnection(
 ): Promise<IPCResult<{ status: string; message: string }>> {
     return new Promise((resolve) => {
         try {
+            const backendPath = getBackendPathForIntegrations();
             const pythonPath = getPythonPathForIntegrations();
 
             const python = spawn(pythonPath, [
@@ -83,6 +84,7 @@ async function getApiModels(
 ): Promise<IPCResult<{ status: string; models?: string[]; message?: string }>> {
     return new Promise((resolve) => {
         try {
+            const backendPath = getBackendPathForIntegrations();
             const pythonPath = getPythonPathForIntegrations();
 
             const python = spawn(pythonPath, [
@@ -152,6 +154,7 @@ async function testOAuthConnection(
 ): Promise<IPCResult<{ status: string; message: string }>> {
     return new Promise((resolve) => {
         try {
+            const backendPath = getBackendPathForIntegrations();
             const pythonPath = getPythonPathForIntegrations();
 
             const python = spawn(pythonPath, [
