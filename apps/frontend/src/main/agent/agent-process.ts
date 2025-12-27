@@ -6,7 +6,8 @@ import { EventEmitter } from 'events';
 import { AgentState } from './agent-state';
 import { AgentEvents } from './agent-events';
 import { ProcessType, ExecutionProgressData } from './types';
-import { detectRateLimit, createSDKRateLimitInfo, getProfileEnv, detectAuthFailure } from '../rate-limit-detector';
+import { detectRateLimit, createSDKRateLimitInfo, detectAuthFailure } from '../rate-limit-detector';
+import { getActiveIntegrationEnv } from '../integration-env';
 import { projectStore } from '../project-store';
 import { getClaudeProfileManager } from '../claude-profile-manager';
 import { parsePythonCommand } from '../python-detector';
@@ -142,7 +143,7 @@ export class AgentProcessManager {
 
           // Remove quotes if present
           if ((value.startsWith('"') && value.endsWith('"')) ||
-              (value.startsWith("'") && value.endsWith("'"))) {
+            (value.startsWith("'") && value.endsWith("'"))) {
             value = value.slice(1, -1);
           }
 
@@ -173,8 +174,8 @@ export class AgentProcessManager {
     // Generate unique spawn ID for this process instance
     const spawnId = this.state.generateSpawnId();
 
-    // Get active Claude profile environment (CLAUDE_CONFIG_DIR if not default)
-    const profileEnv = getProfileEnv();
+    // Get active integration environment (API Token or OAuth)
+    const integrationEnv = getActiveIntegrationEnv();
 
     // Parse Python command to handle space-separated commands like "py -3"
     const [pythonCommand, pythonBaseArgs] = parsePythonCommand(this.getPythonPath());
@@ -183,7 +184,7 @@ export class AgentProcessManager {
       env: {
         ...process.env,
         ...extraEnv,
-        ...profileEnv, // Include active Claude profile config
+        ...integrationEnv, // Include active integration env (API Key, OAuth token, Base URL)
         PYTHONUNBUFFERED: '1', // Ensure real-time output
         PYTHONIOENCODING: 'utf-8', // Ensure UTF-8 encoding on Windows
         PYTHONUTF8: '1' // Force Python UTF-8 mode on Windows (Python 3.7+)
