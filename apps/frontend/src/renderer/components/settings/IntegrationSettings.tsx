@@ -7,7 +7,8 @@ import {
   Info,
   Users,
   Plus,
-  Cloud
+  Cloud,
+  Trash2
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -39,7 +40,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
   // Unified integrations state
   const [integrations, setIntegrations] = useState<UnifiedIntegration[]>([]);
   const [claudeProfiles, setClaudeProfiles] = useState<Record<string, ClaudeProfile>>({});
-  const [activeIntegrationId, setActiveIntegrationId] = useState<string | null>(null);
+  const [activeIntegrationId, setActiveIntegrationId] = useState<string | undefined>(settings.activeIntegrationId);
 
   // Type selector state
   const [showTypeSelector, setShowTypeSelector] = useState(false);
@@ -62,13 +63,22 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
 
   // Listen for OAuth authentication completion
   useEffect(() => {
+    console.log('[IntegrationSettings] Setting up OAuth listener...');
+
     const unsubscribe = window.electronAPI.onTerminalOAuthToken(async (info) => {
+      console.log('[IntegrationSettings] OAuth event received!', info);
+
       if (info.success && info.profileId) {
+        console.log('[IntegrationSettings] Processing successful OAuth for profile:', info.profileId);
+
         // Update OAuth integration authentication status
         // Use functional update to avoid stale closure over integrations
         setIntegrations(currentIntegrations => {
+          console.log('[IntegrationSettings] Current integrations:', currentIntegrations.length);
+
           const updatedIntegrations = currentIntegrations.map(integration => {
             if (integration.type === 'oauth' && integration.profileId === info.profileId) {
+              console.log('[IntegrationSettings] Found matching integration, updating...');
               return {
                 ...integration,
                 isAuthenticated: true,
@@ -77,6 +87,8 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
             }
             return integration;
           });
+
+          console.log('[IntegrationSettings] Updated integrations:', updatedIntegrations.length);
 
           // Save to settings
           onSettingsChange({
@@ -89,10 +101,15 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
 
         await loadClaudeProfiles();
         alert(`✅ Integration authenticated successfully!${info.email ? `\n\nAccount: ${info.email}` : ''}`);
+      } else {
+        console.log('[IntegrationSettings] OAuth event not successful or missing profileId:', info);
       }
     });
 
-    return unsubscribe;
+    return () => {
+      console.log('[IntegrationSettings] Cleaning up OAuth listener');
+      unsubscribe();
+    };
   }, []); // Empty deps - listener only needs to be set up once
 
 
@@ -444,83 +461,9 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
           </div>
         </div>
 
-        {/* API Token Integrations Section */}
-        <div className="space-y-4 pt-4 border-t border-border">
-          <div className="flex items-center gap-2">
-            <Cloud className="h-4 w-4 text-muted-foreground" />
-            <h4 className="text-sm font-semibold text-foreground">API Token Integrations</h4>
-          </div>
 
-          <div className="rounded-lg bg-muted/30 border border-border p-4">
-            <p className="text-sm text-muted-foreground mb-4">
-              Connect to AI providers using API tokens (e.g., z.ai GLM models). Configure custom base URLs and model mappings.
-            </p>
-
-            {/* Existing integrations list */}
-            {Object.keys(integrations).length > 0 && (
-              <div className="space-y-2 mb-4">
-                {Object.values(integrations).map((integration) => (
-                  <div
-                    key={integration.id}
-                    className={cn(
-                      "rounded-lg border p-3 flex items-center justify-between",
-                      integration.isActive
-                        ? "border-primary bg-primary/5"
-                        : "border-border bg-background"
-                    )}
-                  >
-                    <div>
-                      <p className="text-sm font-medium">{integration.name}</p>
-                      {integration.description && (
-                        <p className="text-xs text-muted-foreground">{integration.description}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {integration.baseUrl}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {integration.isActive && (
-                        <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">
-                          Active
-                        </span>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteIntegration(integration.id)}
-                        className="h-7 w-7 text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Add form or button */}
-            {showApiTokenForm ? (
-              <div className="pt-3 border-t border-border">
-                <ApiTokenIntegrationForm
-                  onSave={(data) => {
-                    handleSaveIntegration(data);
-                  }}
-                  onCancel={() => setShowApiTokenForm(false)}
-                />
-              </div>
-            ) : (
-              <Button
-                onClick={() => setShowApiTokenForm(true)}
-                size="sm"
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Add API Token Integration
-              </Button>
-            )}
-          </div>
-        </div>
       </div>
     </SettingsSection>
   );
 }
+```
