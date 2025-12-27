@@ -9,7 +9,9 @@ import {
     Key,
     RefreshCw,
     LogIn,
-    Edit
+    Edit,
+    Activity,
+    Star
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { cn } from '../../../lib/utils';
@@ -24,6 +26,7 @@ interface IntegrationCardProps {
     onDelete: () => void;
     onReauthenticate?: () => void; // For OAuth
     onEdit?: () => void; // For API Token
+    onTestConnection?: () => Promise<void>; // Test connection
 }
 
 export function IntegrationCard({
@@ -33,9 +36,11 @@ export function IntegrationCard({
     onSetActive,
     onDelete,
     onReauthenticate,
-    onEdit
+    onEdit,
+    onTestConnection
 }: IntegrationCardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isTesting, setIsTesting] = useState(false);
 
     const isOAuth = integration.type === 'oauth';
     const isApiToken = integration.type === 'api-token';
@@ -193,15 +198,37 @@ export function IntegrationCard({
 
                     {/* Actions */}
                     <div className="flex items-center justify-between pt-2 border-t border-border">
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={onDelete}
-                            className="gap-2 text-destructive hover:bg-destructive/10"
-                        >
-                            <Trash2 className="h-3 w-3" />
-                            Delete
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={onDelete}
+                                className="gap-2 text-destructive hover:bg-destructive/10"
+                            >
+                                <Trash2 className="h-3 w-3" />
+                                Delete
+                            </Button>
+
+                            {onTestConnection && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={async () => {
+                                        setIsTesting(true);
+                                        try {
+                                            await onTestConnection();
+                                        } finally {
+                                            setIsTesting(false);
+                                        }
+                                    }}
+                                    disabled={isTesting}
+                                    className="gap-2"
+                                >
+                                    <Activity className={cn("h-3 w-3", isTesting && "animate-pulse")} />
+                                    {isTesting ? 'Testing...' : 'Test Connection'}
+                                </Button>
+                            )}
+                        </div>
 
                         {!isActive && (
                             <Button

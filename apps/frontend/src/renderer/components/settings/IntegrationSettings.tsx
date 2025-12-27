@@ -288,13 +288,72 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     }
 
     const updatedIntegrations = integrations.filter(i => i.id !== integrationId);
-
     setIntegrations(updatedIntegrations);
-    onSettingsChange({
-      ...settings,
-      integrations: updatedIntegrations,
-      activeIntegrationId: activeIntegrationId === integrationId ? undefined : activeIntegrationId
-    });
+
+    // Clear active if deleting active integration
+    if (integrationId === activeIntegrationId) {
+      setActiveIntegrationId(undefined);
+      onSettingsChange({
+        ...settings,
+        integrations: updatedIntegrations,
+        activeIntegrationId: undefined
+      });
+    } else {
+      onSettingsChange({
+        ...settings,
+        integrations: updatedIntegrations
+      });
+    }
+
+    // Reload profiles
+    await loadClaudeProfiles();
+  };
+
+  const handleTestConnection = async (integration: UnifiedIntegration) => {
+    try {
+      if (integration.type === 'oauth') {
+        // Test OAuth by checking if profile has valid token
+        const profile = claudeProfiles[integration.profileId];
+
+        if (!profile) {
+          alert('❌ Test failed:\n\nProfile not found. Please re-authenticate.');
+          return;
+        }
+
+        if (!integration.isAuthenticated || !profile.oauthToken) {
+          alert('❌ Test failed:\n\nNo OAuth token found. Please authenticate first.');
+          return;
+        }
+
+        // For OAuth, we can verify the token exists and profile is configured
+        // A deeper test would require calling Claude API, but that's handled by agent-process
+        alert(
+          '✅ OAuth integration looks good!\n\n' +
+          `Profile: ${integration.name}\n` +
+          `Email: ${integration.email || 'Unknown'}\n` +
+          `Status: Authenticated ✓\n\n` +
+          'Token is configured and ready to use.'
+        );
+      } else {
+        // Test API Token by calling backend test endpoint
+        const result = await window.electronAPI.testIntegrationConnection({
+          apiToken: integration.apiToken,
+          baseUrl: integration.baseUrl
+        });
+
+        if (result.success && result.data) {
+          alert(
+            '✅ Connection successful!\n\n' +
+            (result.data.message || 'API is responding correctly.')
+          );
+        } else {
+          alert(`❌ Connection failed:\n\n${result.error || 'Unknown error'}`);
+        }
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`❌ Test failed:\n\n${errorMessage}`);
+    }
   };
 
   return (
@@ -331,6 +390,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
                     onSetActive={() => handleSetActive(integration.id)}
                     onDelete={() => handleDeleteIntegration(integration.id)}
                     onReauthenticate={integration.type === 'oauth' ? () => handleReauthenticate(integration) : undefined}
+                    onTestConnection={() => handleTestConnection(integration)}
                   />
                 ))}
               </div>
