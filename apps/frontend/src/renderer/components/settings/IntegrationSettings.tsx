@@ -71,10 +71,6 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
   const [showApiTokenForm, setShowApiTokenForm] = useState(false);
   const [integrations, setIntegrations] = useState<Record<string, Integration>>({});
 
-  // Integration type selection (when adding new)
-  const [showIntegrationTypeSelector, setShowIntegrationTypeSelector] = useState(false);
-  const [selectedIntegrationType, setSelectedIntegrationType] = useState<'oauth' | 'api-token' | null>(null);
-
   // Load Claude profiles and auto-swap settings when section is shown
   useEffect(() => {
     if (isOpen) {
@@ -116,71 +112,45 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     }
   };
 
-  const handleStartAddIntegration = () => {
+  const handleAddProfile = async () => {
     if (!newProfileName.trim()) return;
-    // Show type selector instead of immediately starting OAuth
-    setShowIntegrationTypeSelector(true);
-  };
 
-  const handleSelectIntegrationType = async (type: 'oauth' | 'api-token') => {
-    setSelectedIntegrationType(type);
+    setIsAddingProfile(true);
+    try {
+      const profileName = newProfileName.trim();
+      const profileSlug = profileName.toLowerCase().replace(/\s+/g, '-');
 
-    if (type === 'oauth') {
-      // Create OAuth profile
-      setIsAddingProfile(true);
-      try {
-        const profileName = newProfileName.trim();
-        const profileSlug = profileName.toLowerCase().replace(/\s+/g, '-');
+      const result = await window.electronAPI.saveClaudeProfile({
+        id: `profile-${Date.now()}`,
+        name: profileName,
+        configDir: `~/.claude-profiles/${profileSlug}`,
+        isDefault: false,
+        createdAt: new Date()
+      });
 
-        const result = await window.electronAPI.saveClaudeProfile({
-          id: `profile-${Date.now()}`,
-          name: profileName,
-          configDir: `~/.claude-profiles/${profileSlug}`,
-          isDefault: false,
-          createdAt: new Date()
-        });
+      if (result.success && result.data) {
+        const initResult = await window.electronAPI.initializeClaudeProfile(result.data.id);
 
-        if (result.success && result.data) {
-          const initResult = await window.electronAPI.initializeClaudeProfile(result.data.id);
+        if (initResult.success) {
+          await loadClaudeProfiles();
+          setNewProfileName('');
 
-          if (initResult.success) {
-            await loadClaudeProfiles();
-            setNewProfileName('');
-            setShowIntegrationTypeSelector(false);
-            setSelectedIntegrationType(null);
-
-            alert(
-              `Authenticating "${profileName}"...\n\n` +
-              `A browser window will open for you to log in with your Claude account.\n\n` +
-              `The authentication will be saved automatically once complete.`
-            );
-          } else {
-            await loadClaudeProfiles();
-            alert(`Failed to start authentication: ${initResult.error || 'Please try again.'}`);
-          }
+          alert(
+            `Authenticating "${profileName}"...\n\n` +
+            `A browser window will open for you to log in with your Claude account.\n\n` +
+            `The authentication will be saved automatically once complete.`
+          );
+        } else {
+          await loadClaudeProfiles();
+          alert(`Failed to start authentication: ${initResult.error || 'Please try again.'}`);
         }
-      } catch (err) {
-        console.error('Failed to add profile:', err);
-        alert('Failed to add profile. Please try again.');
-      } finally {
-        setIsAddingProfile(false);
       }
-    } else if (type === 'api-token') {
-      // Show API token form with pre-filled name
-      setShowIntegrationTypeSelector(false);
-      setShowApiTokenForm(true);
-      // Keep newProfileName to pass to form
+    } catch (err) {
+      console.error('Failed to add profile:', err);
+      alert('Failed to add profile. Please try again.');
+    } finally {
+      setIsAddingProfile(false);
     }
-  };
-
-  const handleCancelTypeSelection = () => {
-    setShowIntegrationTypeSelector(false);
-    setSelectedIntegrationType(null);
-  };
-
-  const handleCancelApiTokenForm = () => {
-    setShowApiTokenForm(false);
-    setNewProfileName(''); // Clear name when canceling API form
   };
 
   const handleDeleteProfile = async (profileId: string) => {
@@ -658,16 +628,15 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
                 value={newProfileName}
                 onChange={(e) => setNewProfileName(e.target.value)}
                 className="flex-1 h-8 text-sm"
-                disabled={showIntegrationTypeSelector}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && newProfileName.trim()) {
-                    handleStartAddIntegration();
+                    handleAddProfile();
                   }
                 }}
               />
               <Button
-                onClick={handleStartAddIntegration}
-                disabled={!newProfileName.trim() || isAddingProfile || showIntegrationTypeSelector}
+                onClick={handleAddProfile}
+                disabled={!newProfileName.trim() || isAddingProfile}
                 size="sm"
                 className="gap-1 shrink-0"
               >
@@ -679,51 +648,6 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
                 {tCommon('buttons.add')}
               </Button>
             </div>
-
-            {/* Integration Type Selector Dialog */}
-            {showIntegrationTypeSelector && (
-              <div className="rounded-lg border border-primary bg-primary/5 p-4 space-y-3">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Choose Integration Type</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Select how you want to authenticate for "{newProfileName}"
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => handleSelectIntegrationType('oauth')}
-                    className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/10 transition-colors"
-                  >
-                    <Users className="h-8 w-8 text-primary" />
-                    <div className="text-center">
-                      <p className="text-sm font-medium">Claude OAuth</p>
-                      <p className="text-xs text-muted-foreground">Use your Claude account</p>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleSelectIntegrationType('api-token')}
-                    className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/10 transition-colors"
-                  >
-                    <Cloud className="h-8 w-8 text-primary" />
-                    <div className="text-center">
-                      <p className="text-sm font-medium">API Token</p>
-                      <p className="text-xs text-muted-foreground">Use custom provider</p>
-                    </div>
-                  </button>
-                </div>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCancelTypeSelection}
-                  className="w-full"
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
           </div>
         </div>
 
@@ -923,67 +847,67 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
               Connect to AI providers using API tokens (e.g., z.ai GLM models). Configure custom base URLs and model mappings.
             </p>
 
-            {/* Show form or integrations list */}
-            {showApiTokenForm ? (
-              <ApiTokenIntegrationForm
-                initialName={newProfileName}
-                onSave={handleSaveIntegration}
-                onCancel={handleCancelApiTokenForm}
-              />
-            ) : (
-              <>
-                {/* Existing integrations */}
-                {Object.keys(integrations).length > 0 && (
-                  <div className="space-y-2 mb-4">
-                    {Object.values(integrations).map((integration) => (
-                      <div
-                        key={integration.id}
-                        className={cn(
-                          "rounded-lg border p-3 flex items-center justify-between",
-                          integration.isActive
-                            ? "border-primary bg-primary/5"
-                            : "border-border bg-background"
-                        )}
+            {/* Existing integrations list */}
+            {Object.keys(integrations).length > 0 && (
+              <div className="space-y-2 mb-4">
+                {Object.values(integrations).map((integration) => (
+                  <div
+                    key={integration.id}
+                    className={cn(
+                      "rounded-lg border p-3 flex items-center justify-between",
+                      integration.isActive
+                        ? "border-primary bg-primary/5"
+                        : "border-border bg-background"
+                    )}
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{integration.name}</p>
+                      {integration.description && (
+                        <p className="text-xs text-muted-foreground">{integration.description}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {integration.baseUrl}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {integration.isActive && (
+                        <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">
+                          Active
+                        </span>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteIntegration(integration.id)}
+                        className="h-7 w-7 text-destructive hover:bg-destructive/10"
                       >
-                        <div>
-                          <p className="text-sm font-medium">{integration.name}</p>
-                          {integration.description && (
-                            <p className="text-xs text-muted-foreground">{integration.description}</p>
-                          )}
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {integration.baseUrl}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {integration.isActive && (
-                            <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">
-                              Active
-                            </span>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteIntegration(integration.id)}
-                            className="h-7 w-7 text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
-                )}
+                ))}
+              </div>
+            )}
 
-                {/* Add new button */}
-                <Button
-                  onClick={() => setShowApiTokenForm(true)}
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add API Token Integration
-                </Button>
-              </>
+            {/* Add form or button */}
+            {showApiTokenForm ? (
+              <div className="pt-3 border-t border-border">
+                <ApiTokenIntegrationForm
+                  onSave={(data) => {
+                    handleSaveIntegration(data);
+                  }}
+                  onCancel={handleCancelApiTokenForm}
+                />
+              </div>
+            ) : (
+              <Button
+                onClick={() => setShowApiTokenForm(true)}
+                size="sm"
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add API Token Integration
+              </Button>
             )}
           </div>
         </div>
@@ -991,3 +915,4 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     </SettingsSection>
   );
 }
+```
