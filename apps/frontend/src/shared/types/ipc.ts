@@ -595,8 +595,13 @@ export interface ElectronAPI {
     }) => void
   ) => () => void;
 
+
   // GitHub API (nested for organized access)
   github: import('../../preload/api/modules/github-api').GitHubAPI;
+
+  // Integration API operations
+  testApiToken: (apiToken: string, baseUrl: string) => Promise<IPCResult<import('./integration').TestTokenResponse>>;
+  getApiModels: (apiToken: string, baseUrl: string) => Promise<IPCResult<import('./integration').GetModelsResponse>>;
 }
 
 declare global {
