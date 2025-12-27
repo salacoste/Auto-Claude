@@ -18,10 +18,11 @@ interface ApiTokenIntegrationFormProps {
         modelMapping?: ModelMapping;
     }) => void;
     onCancel: () => void;
+    initialName?: string; // Pre-fill name if provided
 }
 
-export function ApiTokenIntegrationForm({ onSave, onCancel }: ApiTokenIntegrationFormProps) {
-    const [name, setName] = useState('');
+export function ApiTokenIntegrationForm({ onSave, onCancel, initialName }: ApiTokenIntegrationFormProps) {
+    const [name, setName] = useState(initialName || '');
     const [description, setDescription] = useState('');
     const [apiToken, setApiToken] = useState('');
     const [baseUrl, setBaseUrl] = useState('https://api.anthropic.com');
@@ -210,8 +211,8 @@ export function ApiTokenIntegrationForm({ onSave, onCancel }: ApiTokenIntegratio
                 {testResult && (
                     <div
                         className={`flex items-center gap-2 text-sm rounded-md p-2 ${testResult.status === 'success'
-                                ? 'bg-success/10 text-success'
-                                : 'bg-destructive/10 text-destructive'
+                            ? 'bg-success/10 text-success'
+                            : 'bg-destructive/10 text-destructive'
                             }`}
                     >
                         {testResult.status === 'success' ? (

@@ -18,7 +18,8 @@ import {
   ChevronRight,
   RefreshCw,
   Activity,
-  AlertCircle
+  AlertCircle,
+  Cloud
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -27,7 +28,9 @@ import { Switch } from '../ui/switch';
 import { cn } from '../../lib/utils';
 import { SettingsSection } from './SettingsSection';
 import { loadClaudeProfiles as loadGlobalClaudeProfiles } from '../../stores/claude-profile-store';
+import { ApiTokenIntegrationForm } from './integrations/ApiTokenIntegrationForm';
 import type { AppSettings, ClaudeProfile, ClaudeAutoSwitchSettings } from '../../../shared/types';
+import type { Integration } from '../../../shared/types/integration';
 
 interface IntegrationSettingsProps {
   settings: AppSettings;
@@ -64,13 +67,23 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
   const [autoSwitchSettings, setAutoSwitchSettings] = useState<ClaudeAutoSwitchSettings | null>(null);
   const [isLoadingAutoSwitch, setIsLoadingAutoSwitch] = useState(false);
 
+  // API Token Integration state
+  const [showApiTokenForm, setShowApiTokenForm] = useState(false);
+  const [integrations, setIntegrations] = useState<Record<string, Integration>>({});
+
+  // Integration type selection (when adding new)
+  const [showIntegrationTypeSelector, setShowIntegrationTypeSelector] = useState(false);
+  const [selectedIntegrationType, setSelectedIntegrationType] = useState<'oauth' | 'api-token' | null>(null);
+
   // Load Claude profiles and auto-swap settings when section is shown
   useEffect(() => {
     if (isOpen) {
       loadClaudeProfiles();
       loadAutoSwitchSettings();
+      // Load integrations from settings
+      setIntegrations(settings.integrations || {});
     }
-  }, [isOpen]);
+  }, [isOpen, settings.integrations]);
 
   // Listen for OAuth authentication completion
   useEffect(() => {
@@ -103,46 +116,71 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     }
   };
 
-  const handleAddProfile = async () => {
+  const handleStartAddIntegration = () => {
     if (!newProfileName.trim()) return;
+    // Show type selector instead of immediately starting OAuth
+    setShowIntegrationTypeSelector(true);
+  };
 
-    setIsAddingProfile(true);
-    try {
-      const profileName = newProfileName.trim();
-      const profileSlug = profileName.toLowerCase().replace(/\s+/g, '-');
+  const handleSelectIntegrationType = async (type: 'oauth' | 'api-token') => {
+    setSelectedIntegrationType(type);
 
-      const result = await window.electronAPI.saveClaudeProfile({
-        id: `profile-${Date.now()}`,
-        name: profileName,
-        configDir: `~/.claude-profiles/${profileSlug}`,
-        isDefault: false,
-        createdAt: new Date()
-      });
+    if (type === 'oauth') {
+      // Create OAuth profile
+      setIsAddingProfile(true);
+      try {
+        const profileName = newProfileName.trim();
+        const profileSlug = profileName.toLowerCase().replace(/\s+/g, '-');
 
-      if (result.success && result.data) {
-        // Initialize the profile
-        const initResult = await window.electronAPI.initializeClaudeProfile(result.data.id);
+        const result = await window.electronAPI.saveClaudeProfile({
+          id: `profile-${Date.now()}`,
+          name: profileName,
+          configDir: `~/.claude-profiles/${profileSlug}`,
+          isDefault: false,
+          createdAt: new Date()
+        });
 
-        if (initResult.success) {
-          await loadClaudeProfiles();
-          setNewProfileName('');
+        if (result.success && result.data) {
+          const initResult = await window.electronAPI.initializeClaudeProfile(result.data.id);
 
-          alert(
-            `Authenticating "${profileName}"...\n\n` +
-            `A browser window will open for you to log in with your Claude account.\n\n` +
-            `The authentication will be saved automatically once complete.`
-          );
-        } else {
-          await loadClaudeProfiles();
-          alert(`Failed to start authentication: ${initResult.error || 'Please try again.'}`);
+          if (initResult.success) {
+            await loadClaudeProfiles();
+            setNewProfileName('');
+            setShowIntegrationTypeSelector(false);
+            setSelectedIntegrationType(null);
+
+            alert(
+              `Authenticating "${profileName}"...\n\n` +
+              `A browser window will open for you to log in with your Claude account.\n\n` +
+              `The authentication will be saved automatically once complete.`
+            );
+          } else {
+            await loadClaudeProfiles();
+            alert(`Failed to start authentication: ${initResult.error || 'Please try again.'}`);
+          }
         }
+      } catch (err) {
+        console.error('Failed to add profile:', err);
+        alert('Failed to add profile. Please try again.');
+      } finally {
+        setIsAddingProfile(false);
       }
-    } catch (err) {
-      console.error('Failed to add profile:', err);
-      alert('Failed to add profile. Please try again.');
-    } finally {
-      setIsAddingProfile(false);
+    } else if (type === 'api-token') {
+      // Show API token form with pre-filled name
+      setShowIntegrationTypeSelector(false);
+      setShowApiTokenForm(true);
+      // Keep newProfileName to pass to form
     }
+  };
+
+  const handleCancelTypeSelection = () => {
+    setShowIntegrationTypeSelector(false);
+    setSelectedIntegrationType(null);
+  };
+
+  const handleCancelApiTokenForm = () => {
+    setShowApiTokenForm(false);
+    setNewProfileName(''); // Clear name when canceling API form
   };
 
   const handleDeleteProfile = async (profileId: string) => {
@@ -290,6 +328,53 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     } finally {
       setIsLoadingAutoSwitch(false);
     }
+  };
+
+  // API Token Integration handlers
+  const handleSaveIntegration = (data: {
+    name: string;
+    description: string;
+    apiToken: string;
+    baseUrl: string;
+    modelMapping?: import('../../../shared/types/integration').ModelMapping;
+  }) => {
+    const integrationId = `api-${Date.now()}`;
+    const newIntegration: Integration = {
+      id: integrationId,
+      type: 'api-token',
+      name: data.name,
+      description: data.description,
+      apiToken: data.apiToken,
+      baseUrl: data.baseUrl,
+      modelMapping: data.modelMapping,
+      isActive: Object.keys(integrations).length === 0, // First integration is active
+      createdAt: new Date().toISOString()
+    };
+
+    const updatedIntegrations = {
+      ...integrations,
+      [integrationId]: newIntegration
+    };
+
+    setIntegrations(updatedIntegrations);
+    onSettingsChange({
+      ...settings,
+      integrations: updatedIntegrations,
+      activeIntegrationId: newIntegration.isActive ? integrationId : settings.activeIntegrationId
+    });
+    setShowApiTokenForm(false);
+  };
+
+  const handleDeleteIntegration = (integrationId: string) => {
+    const updated = { ...integrations };
+    delete updated[integrationId];
+    setIntegrations(updated);
+
+    onSettingsChange({
+      ...settings,
+      integrations: updated,
+      activeIntegrationId: settings.activeIntegrationId === integrationId ? undefined : settings.activeIntegrationId
+    });
   };
 
   return (
@@ -573,15 +658,16 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
                 value={newProfileName}
                 onChange={(e) => setNewProfileName(e.target.value)}
                 className="flex-1 h-8 text-sm"
+                disabled={showIntegrationTypeSelector}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && newProfileName.trim()) {
-                    handleAddProfile();
+                    handleStartAddIntegration();
                   }
                 }}
               />
               <Button
-                onClick={handleAddProfile}
-                disabled={!newProfileName.trim() || isAddingProfile}
+                onClick={handleStartAddIntegration}
+                disabled={!newProfileName.trim() || isAddingProfile || showIntegrationTypeSelector}
                 size="sm"
                 className="gap-1 shrink-0"
               >
@@ -593,6 +679,51 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
                 {tCommon('buttons.add')}
               </Button>
             </div>
+
+            {/* Integration Type Selector Dialog */}
+            {showIntegrationTypeSelector && (
+              <div className="rounded-lg border border-primary bg-primary/5 p-4 space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Choose Integration Type</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select how you want to authenticate for "{newProfileName}"
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleSelectIntegrationType('oauth')}
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/10 transition-colors"
+                  >
+                    <Users className="h-8 w-8 text-primary" />
+                    <div className="text-center">
+                      <p className="text-sm font-medium">Claude OAuth</p>
+                      <p className="text-xs text-muted-foreground">Use your Claude account</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handleSelectIntegrationType('api-token')}
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/10 transition-colors"
+                  >
+                    <Cloud className="h-8 w-8 text-primary" />
+                    <div className="text-center">
+                      <p className="text-sm font-medium">API Token</p>
+                      <p className="text-xs text-muted-foreground">Use custom provider</p>
+                    </div>
+                  </button>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancelTypeSelection}
+                  className="w-full"
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -777,6 +908,83 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* API Token Integrations Section */}
+        <div className="space-y-4 pt-4 border-t border-border">
+          <div className="flex items-center gap-2">
+            <Cloud className="h-4 w-4 text-muted-foreground" />
+            <h4 className="text-sm font-semibold text-foreground">API Token Integrations</h4>
+          </div>
+
+          <div className="rounded-lg bg-muted/30 border border-border p-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Connect to AI providers using API tokens (e.g., z.ai GLM models). Configure custom base URLs and model mappings.
+            </p>
+
+            {/* Show form or integrations list */}
+            {showApiTokenForm ? (
+              <ApiTokenIntegrationForm
+                initialName={newProfileName}
+                onSave={handleSaveIntegration}
+                onCancel={handleCancelApiTokenForm}
+              />
+            ) : (
+              <>
+                {/* Existing integrations */}
+                {Object.keys(integrations).length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    {Object.values(integrations).map((integration) => (
+                      <div
+                        key={integration.id}
+                        className={cn(
+                          "rounded-lg border p-3 flex items-center justify-between",
+                          integration.isActive
+                            ? "border-primary bg-primary/5"
+                            : "border-border bg-background"
+                        )}
+                      >
+                        <div>
+                          <p className="text-sm font-medium">{integration.name}</p>
+                          {integration.description && (
+                            <p className="text-xs text-muted-foreground">{integration.description}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {integration.baseUrl}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {integration.isActive && (
+                            <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">
+                              Active
+                            </span>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteIntegration(integration.id)}
+                            className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add new button */}
+                <Button
+                  onClick={() => setShowApiTokenForm(true)}
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add API Token Integration
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -118,6 +118,9 @@ export interface AppSettings {
   betaUpdates?: boolean;
   // Migration flags (internal use)
   _migratedAgentProfileToAuto?: boolean;
+  // API-based integrations (z.ai, custom providers)
+  integrations?: Record<string, import('./integration').Integration>;
+  activeIntegrationId?: string;
   // Language preference for UI (i18n)
   language?: SupportedLanguage;
 }
