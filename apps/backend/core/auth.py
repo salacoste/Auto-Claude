@@ -90,12 +90,13 @@ def get_token_from_keychain() -> str | None:
 
 def get_auth_token() -> str | None:
     """
-    Get authentication token from environment variables or macOS Keychain.
+    Get authentication token from environment variables, API integration, or macOS Keychain.
 
     Checks multiple sources in priority order:
-    1. CLAUDE_CODE_OAUTH_TOKEN (env var)
-    2. ANTHROPIC_AUTH_TOKEN (CCR/proxy env var for enterprise setups)
-    3. macOS Keychain (if on Darwin platform)
+    1. Active API token integration (from Electron settings)
+    2. CLAUDE_CODE_OAUTH_TOKEN (env var)
+    3. ANTHROPIC_AUTH_TOKEN (CCR/proxy env var for enterprise setups)
+    4. macOS Keychain (if on Darwin platform)
 
     NOTE: ANTHROPIC_API_KEY is intentionally NOT supported to prevent
     silent billing to user's API credits when OAuth is misconfigured.
@@ -103,7 +104,17 @@ def get_auth_token() -> str | None:
     Returns:
         Token string if found, None otherwise
     """
-    # First check environment variables
+    # First check for active API token integration
+    try:
+        from integration_config import get_api_token
+        
+        api_token = get_api_token()
+        if api_token:
+            return api_token
+    except ImportError:
+        pass  # integration_config not available
+    
+    # Check environment variables
     for var in AUTH_TOKEN_ENV_VARS:
         token = os.environ.get(var)
         if token:
@@ -165,15 +176,31 @@ def get_sdk_env_vars() -> dict[str, str]:
 
     Collects relevant env vars (ANTHROPIC_BASE_URL, etc.) that should
     be passed through to the claude-agent-sdk subprocess.
+    
+    Also checks for active API token integration's base URL.
 
     Returns:
         Dict of env var name -> value for non-empty vars
     """
     env = {}
+    
+    # Check for base URL from active integration first
+    try:
+        from integration_config import get_base_url
+        
+        base_url = get_base_url()
+        if base_url:
+            env["ANTHROPIC_BASE_URL"] = base_url
+    except ImportError:
+        pass
+    
+    # Then check environment variables (integration takes precedence)
     for var in SDK_ENV_VARS:
-        value = os.environ.get(var)
-        if value:
-            env[var] = value
+        if var not in env:  # Don't override integration base URL
+            value = os.environ.get(var)
+            if value:
+                env[var] = value
+    
     return env
 
 

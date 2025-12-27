@@ -93,15 +93,29 @@ def resolve_model_id(model: str) -> str:
     """
     Resolve a model shorthand (haiku, sonnet, opus) to a full model ID.
     If the model is already a full ID, return it unchanged.
+    
+    First checks active integration's model mapping (for custom models like z.ai GLM).
+    Falls back to default Anthropic model mapping.
 
     Args:
         model: Model shorthand or full ID
 
     Returns:
-        Full Claude model ID
+        Full Claude model ID (or custom model ID from integration)
     """
     # Check if it's a shorthand
     if model in MODEL_ID_MAP:
+        # Check for integration override
+        try:
+            from integration_config import resolve_model_with_integration
+            
+            custom_model = resolve_model_with_integration(model)
+            if custom_model:
+                return custom_model
+        except ImportError:
+            pass  # integration_config not available, use default
+        
+        # Use default mapping
         return MODEL_ID_MAP[model]
 
     # Already a full model ID
