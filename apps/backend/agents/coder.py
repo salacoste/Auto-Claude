@@ -62,6 +62,8 @@ from .utils import (
     get_latest_commit,
     load_implementation_plan,
     sync_plan_to_source,
+    update_plan_status,
+    update_subtask_status,
 )
 
 logger = logging.getLogger(__name__)
@@ -171,7 +173,10 @@ async def run_autonomous_agent(
 
         # Start/continue coding phase in task logger
         if task_logger:
-            task_logger.start_phase(LogPhase.CODING, "Continuing implementation...")
+            task_logger.start_phase(LogPhase.CODING, "Starting Coder Agent: Continuing implementation...")
+            
+        # Ensure plan status is set to coding
+        update_plan_status(spec_dir, "coding")
 
     # Show human intervention hint
     content = [
@@ -280,8 +285,11 @@ async def run_autonomous_agent(
                         message="Implementation plan created",
                     )
                     task_logger.start_phase(
-                        LogPhase.CODING, "Starting implementation..."
+                        LogPhase.CODING, "Starting Coder Agent: Starting implementation..."
                     )
+                
+                # Update plan status to coding
+                update_plan_status(spec_dir, "coding")
 
             if not next_subtask:
                 print("No pending subtasks found - build may be complete!")
@@ -321,6 +329,10 @@ async def run_autonomous_agent(
             if graphiti_context:
                 prompt += "\n\n" + graphiti_context
                 print_status("Graphiti memory context loaded", "success")
+
+            # Mark subtask as in_progress in the plan file (so UI updates)
+            if subtask_id:
+                update_subtask_status(spec_dir, subtask_id, "in_progress")
 
             # Show what we're working on
             print(f"Working on: {highlight(subtask_id)}")

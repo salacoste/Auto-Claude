@@ -114,3 +114,76 @@ def sync_plan_to_source(spec_dir: Path, source_spec_dir: Path | None) -> bool:
     except Exception as e:
         logger.warning(f"Failed to sync implementation plan to source: {e}")
         return False
+
+
+def update_subtask_status(spec_dir: Path, subtask_id: str, status: str) -> bool:
+    """
+    Update the status of a subtask in implementation_plan.json.
+
+    Args:
+        spec_dir: Directory containing implementation_plan.json
+        subtask_id: ID of subtask to update
+        status: New status (pending, in_progress, completed, failed)
+
+    Returns:
+        True if successful
+    """
+    plan_file = spec_dir / "implementation_plan.json"
+    if not plan_file.exists():
+        return False
+
+    try:
+        with open(plan_file) as f:
+            plan = json.load(f)
+
+        updated = False
+        for phase in plan.get("phases", []):
+            for subtask in phase.get("subtasks", []):
+                if subtask.get("id") == subtask_id:
+                    subtask["status"] = status
+                    updated = True
+                    break
+            if updated:
+                break
+
+        if updated:
+            # Also update top-level status if we are working
+            if status == "in_progress":
+                plan["status"] = "coding"
+            
+            with open(plan_file, "w") as f:
+                json.dump(plan, f, indent=2)
+            return True
+        return False
+    except (OSError, json.JSONDecodeError) as e:
+        logger.error(f"Failed to update subtask status: {e}")
+        return False
+
+
+def update_plan_status(spec_dir: Path, status: str) -> bool:
+    """
+    Update the top-level status in implementation_plan.json.
+
+    Args:
+        spec_dir: Directory containing implementation_plan.json
+        status: New status (planning, coding, review, done)
+
+    Returns:
+        True if successful
+    """
+    plan_file = spec_dir / "implementation_plan.json"
+    if not plan_file.exists():
+        return False
+
+    try:
+        with open(plan_file) as f:
+            plan = json.load(f)
+
+        plan["status"] = status
+        
+        with open(plan_file, "w") as f:
+            json.dump(plan, f, indent=2)
+        return True
+    except (OSError, json.JSONDecodeError) as e:
+        logger.error(f"Failed to update plan status: {e}")
+        return False
