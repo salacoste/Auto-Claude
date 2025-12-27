@@ -6,9 +6,16 @@
  * Checks both OAuth (Claude Code) and API Token integrations.
  */
 
-import { getSettingsManager } from '../settings-manager';
-import { getClaudeProfileManager } from '../claude-profile-manager';
-import type { UnifiedIntegration, ApiTokenIntegration } from '../../shared/types/integration';
+import { readSettingsFile } from './settings-utils';
+import { DEFAULT_APP_SETTINGS } from '../shared/constants';
+import { getClaudeProfileManager } from './claude-profile-manager';
+import type { UnifiedIntegration, ApiTokenIntegration } from '../shared/types/integration';
+
+interface AppSettings {
+    activeIntegrationId?: string;
+    integrations?: UnifiedIntegration[];
+    [key: string]: unknown;
+}
 
 /**
  * Get environment variables for the active integration.
@@ -22,8 +29,10 @@ import type { UnifiedIntegration, ApiTokenIntegration } from '../../shared/types
  */
 export function getActiveIntegrationEnv(): Record<string, string> {
     const env: Record<string, string> = {};
-    const settingsManager = getSettingsManager();
-    const settings = settingsManager.getSettings();
+
+    // Read settings from disk and merge with defaults
+    const rawSettings = readSettingsFile() || {};
+    const settings: AppSettings = { ...DEFAULT_APP_SETTINGS, ...rawSettings };
 
     // Check if there's an active integration
     if (!settings.activeIntegrationId || !settings.integrations) {
@@ -91,8 +100,9 @@ export function getActiveIntegrationEnv(): Record<string, string> {
  * @returns true if an API Token integration is active
  */
 export function isApiTokenIntegrationActive(): boolean {
-    const settingsManager = getSettingsManager();
-    const settings = settingsManager.getSettings();
+    // Read settings from disk and merge with defaults
+    const rawSettings = readSettingsFile() || {};
+    const settings: AppSettings = { ...DEFAULT_APP_SETTINGS, ...rawSettings };
 
     if (!settings.activeIntegrationId || !settings.integrations) {
         return false;

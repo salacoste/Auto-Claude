@@ -7,7 +7,6 @@ import * as pty from '@lydell/node-pty';
 import * as os from 'os';
 import type { TerminalProcess, WindowGetter } from './types';
 import { IPC_CHANNELS } from '../../shared/constants';
-import { IPC_CHANNELS } from '../../shared/constants';
 import { getActiveIntegrationEnv } from '../integration-env';
 
 /**
