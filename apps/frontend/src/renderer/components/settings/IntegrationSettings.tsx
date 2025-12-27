@@ -388,9 +388,18 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
   };
 
   const handleUpdateModelMapping = (integrationId: string, modelMapping: { opus?: string; sonnet?: string; haiku?: string }) => {
+    // Clean mapping - remove undefined values
+    const cleanMapping: any = {};
+    if (modelMapping.opus) cleanMapping.opus = modelMapping.opus;
+    if (modelMapping.sonnet) cleanMapping.sonnet = modelMapping.sonnet;
+    if (modelMapping.haiku) cleanMapping.haiku = modelMapping.haiku;
+
     const updatedIntegrations = integrations.map(int => {
       if (int.id === integrationId && int.type === 'api-token') {
-        return { ...int, modelMapping };
+        return {
+          ...int,
+          modelMapping: Object.keys(cleanMapping).length > 0 ? cleanMapping : undefined
+        };
       }
       return int;
     });
