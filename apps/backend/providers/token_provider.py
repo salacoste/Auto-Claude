@@ -2,15 +2,17 @@
 API Token Provider
 ==================
 
-Provider for API token-based authentication (e.g., z.ai GLM models).
+Token-based authentication provider for Claude API.
 
-Supports custom base URLs and model mapping to Claude model names.
+Handles API token authentication and provides methods for testing
+connectivity and retrieving available models.
 """
 
 import asyncio
 import json
 import logging
 import os
+import sys
 from typing import Any
 
 import httpx
