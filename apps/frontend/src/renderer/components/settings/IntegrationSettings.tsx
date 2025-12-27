@@ -281,22 +281,24 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
       description={t('integrations.description')}
     >
       <div className="space-y-6">
-        {/* Claude Accounts Section */}
+        {/* Integrations Section */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <h4 className="text-sm font-semibold text-foreground">{t('integrations.claudeAccounts')}</h4>
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-foreground">Integrations</h4>
+            <p className="text-xs text-muted-foreground">
+              {integrations.length} integration{integrations.length !== 1 ? 's' : ''}
+              {activeIntegrationId && ' · 1 active'}
+            </p>
           </div>
 
-          <div className="rounded-lg bg-muted/30 border border-border p-4">
-            <p className="text-sm text-muted-foreground mb-4">
-              {t('integrations.claudeAccountsDescription')}
+          <div className="rounded-lg border border-border p-4 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Manage Claude OAuth accounts and API token-based integrations. Only one integration can be active at a time.
             </p>
 
             {/* Accounts list */}
             {isLoadingProfiles ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
             ) : claudeProfiles.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border p-4 text-center mb-4">
