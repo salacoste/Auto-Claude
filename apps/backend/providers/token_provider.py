@@ -64,40 +64,61 @@ class TokenProvider:
                 # Use messages endpoint with empty content to test auth
                 response = await client.post(
                     f"{self.base_url}/v1/messages",
-                    headers={
-                        "x-api-key": self.api_token,
-                        "anthropic-version": "2023-06-01",
-                        "content-type": "application/json",
-                    },
-                    json={
-                        "model": "claude-3-5-sonnet-20241022",  # Default model
-                        "max_tokens": 1,
-                        "messages": [{"role": "user", "content": "test"}],
-                    },
-                )
+        Test connection to API with minimal request.
 
-                if response.status_code in [200, 400]:
-                    # 200 = success, 400 = auth works but invalid params (expected)
-                    return {"status": "success", "message": "Connection successful"}
-                elif response.status_code == 401:
-                    return {
-                        "status": "error",
-                        "message": "Invalid API token. Please check your credentials.",
-                    }
-                else:
-                    return {
-                        "status": "error",
-                        "message": f"API returned status {response.status_code}",
-                    }
+        Returns:
+            Test result with status and message
+        """
+        print(f"[TokenProvider] Testing connection to: {self.base_url}", file=sys.stderr)
+        print(f"[TokenProvider] Token length: {len(self.api_token)}", file=sys.stderr)
+        print(f"[TokenProvider] Token preview: {self.api_token[:15]}...{self.api_token[-10:]}", file=sys.stderr)
+        
+        try:
+            # Make minimal API call to test token
+            messages = [{"role": "user", "content": "test"}]
+            
+            print(f"[TokenProvider] Making POST request to: {self.base_url}/v1/messages", file=sys.stderr)
+            print(f"[TokenProvider] Request headers:", file=sys.stderr)
+            print(f"  x-api-key: {self.api_token[:15]}...", file=sys.stderr)
+            print(f"  anthropic-version: 2023-06-01", file=sys.stderr)
+            print(f"  content-type: application/json", file=sys.stderr)
+            print(f"[TokenProvider] Request payload: model=claude-3-5-sonnet-20241022, max_tokens=10", file=sys.stderr)
+            
+            response = await self._make_request(
+                model="claude-3-5-sonnet-20241022", messages=messages, max_tokens=10
+            )
 
-        except httpx.TimeoutException:
+            print(f"[TokenProvider] ✅ Success! Got 200 response", file=sys.stderr)
+            return {"status": "success", "message": "Connection successful!"}
+
+        except httpx.HTTPStatusError as e:
+            status_code = e.response.status_code
+            response_text = e.response.text
+            
+            print(f"[TokenProvider] ❌ HTTP Error: {status_code}", file=sys.stderr)
+            print(f"[TokenProvider] Response headers: {dict(e.response.headers)}", file=sys.stderr)
+            print(f"[TokenProvider] Response body: {response_text}", file=sys.stderr)
+            
+            if status_code == 401:
+                return {
+                    "status": "error",
+                    "message": f"Invalid API token. Please check your credentials. (API responded: {response_text[:100]})",
+                }
             return {
                 "status": "error",
-                "message": "Connection timeout. Please check the base URL.",
+                "message": f"API request failed (HTTP {status_code}): {response_text[:100]}",
             }
-        except Exception as e:
-            logger.error(f"Connection test failed: {e}")
-            return {"status": "error", "message": f"Connection failed: {str(e)}"}
+
+        except httpx.TimeoutException:
+            print(f"[TokenProvider] ❌ Timeout connecting to API", file=sys.stderr)
+            return {
+                "status": "error",
+                "message": "Connection timeout. Please check your network and API endpoint.",
+            }
+
+        except Exception as error:
+            print(f"[TokenProvider] ❌ Unexpected error: {type(error).__name__}: {str(error)}", file=sys.stderr)
+            return {"status": "error", "message": f"Connection failed: {str(error)}"}
 
     async def get_models(self) -> dict[str, Any]:
         """
