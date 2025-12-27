@@ -64,30 +64,51 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
   useEffect(() => {
     const unsubscribe = window.electronAPI.onTerminalOAuthToken(async (info) => {
       if (info.success && info.profileId) {
-        // Reload profiles to show updated state
+        // Update OAuth integration authentication status
+        const updatedIntegrations = integrations.map(integration => {
+          if (integration.type === 'oauth' && integration.profileId === info.profileId) {
+            return {
+              ...integration,
+              isAuthenticated: true,
+              email: info.email
+            };
+          }
+          return integration;
+        });
+
+        setIntegrations(updatedIntegrations);
+        onSettingsChange({
+          ...settings,
+          integrations: updatedIntegrations
+        });
+
         await loadClaudeProfiles();
-        // Show simple success notification
-        alert(`✅ Profile authenticated successfully!\n\n${info.email ? `Account: ${info.email}` : 'Authentication complete.'}\n\nYou can now use this profile.`);
+        alert(`✅ Integration authenticated successfully!${info.email ? `\n\nAccount: ${info.email}` : ''}`);
       }
     });
 
     return unsubscribe;
-  }, []);
+  }, [integrations]);
+
+
+  const loadIntegrations = () => {
+    setIntegrations(settings.integrations || []);
+    setActiveIntegrationId(settings.activeIntegrationId || null);
+  };
 
   const loadClaudeProfiles = async () => {
-    setIsLoadingProfiles(true);
     try {
       const result = await window.electronAPI.getClaudeProfiles();
       if (result.success && result.data) {
-        setClaudeProfiles(result.data.profiles);
-        setActiveProfileId(result.data.activeProfileId);
-        // Also update the global store
+        const profilesMap: Record<string, ClaudeProfile> = {};
+        result.data.profiles.forEach(profile => {
+          profilesMap[profile.id] = profile;
+        });
+        setClaudeProfiles(profilesMap);
         await loadGlobalClaudeProfiles();
       }
     } catch (err) {
       console.error('Failed to load Claude profiles:', err);
-    } finally {
-      setIsLoadingProfiles(false);
     }
   };
 
