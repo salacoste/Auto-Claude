@@ -31,7 +31,7 @@ export interface IntegrationAPI {
      * Test OAuth token connection
      */
     testOAuthToken: (
-        oauthToken: string
+        profileId: string
     ) => Promise<IPCResult<TestTokenResponse>>;
 }
 
@@ -43,7 +43,7 @@ export function createIntegrationAPI(): IntegrationAPI {
         getApiModels: (apiToken: string, baseUrl: string) =>
             ipcRenderer.invoke(IPC_CHANNELS.INTEGRATION_GET_MODELS, apiToken, baseUrl),
 
-        testOAuthToken: (oauthToken: string) =>
-            ipcRenderer.invoke(IPC_CHANNELS.INTEGRATION_TEST_OAUTH, oauthToken)
+        testOAuthToken: (profileId: string) =>
+            ipcRenderer.invoke(IPC_CHANNELS.INTEGRATION_TEST_OAUTH, profileId)
     };
 }

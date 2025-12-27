@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import { IPC_CHANNELS } from '../../shared/constants';
 import type { IPCResult } from '../../shared/types';
 import { getBackendPathForIntegrations, getPythonPathForIntegrations } from '../utils/backend-path';
+import { getClaudeProfileManager } from '../claude-profile-manager';
 
 /**
  * Call Python backend to test API token connection
@@ -150,15 +151,28 @@ print(json.dumps(result))
  * Call Python backend to test OAuth token connection
  */
 async function testOAuthConnection(
-    oauthToken: string
+    profileId: string
 ): Promise<IPCResult<{ status: string; message: string }>> {
     return new Promise((resolve) => {
         try {
             const backendPath = getBackendPathForIntegrations();
             const pythonPath = getPythonPathForIntegrations();
 
-            console.log('[testOAuthConnection] Token length:', oauthToken?.length);
-            console.log('[testOAuthConnection] Token preview:', oauthToken?.substring(0, 10) + '...' + oauthToken?.substring(oauthToken.length - 10));
+            // Decrypt OAuth token using profile manager
+            const profileManager = getClaudeProfileManager();
+            const decryptedToken = profileManager.getProfileToken(profileId);
+
+            if (!decryptedToken) {
+                resolve({
+                    success: false,
+                    error: 'Failed to decrypt OAuth token for profile: ' + profileId
+                });
+                return;
+            }
+
+            console.log('[testOAuthConnection] Profile ID:', profileId);
+            console.log('[testOAuthConnection] Decrypted token length:', decryptedToken.length);
+            console.log('[testOAuthConnection] Token preview:', decryptedToken.substring(0, 10) + '...' + decryptedToken.substring(decryptedToken.length - 10));
             console.log('[testOAuthConnection] Backend path:', backendPath);
             console.log('[testOAuthConnection] Python path:', pythonPath);
 
@@ -167,7 +181,7 @@ async function testOAuthConnection(
                 `
 from providers.token_provider import test_oauth_connection_sync
 import json
-result = test_oauth_connection_sync("${oauthToken.replace(/"/g, '\\"')}")
+result = test_oauth_connection_sync("${decryptedToken.replace(/"/g, '\\"')}")
 print(json.dumps(result))
         `.trim()
             ], {
@@ -244,8 +258,8 @@ export function registerIntegrationHandlers(): void {
     // Test OAuth connection
     ipcMain.handle(
         IPC_CHANNELS.INTEGRATION_TEST_OAUTH,
-        async (_, oauthToken: string) => {
-            return testOAuthConnection(oauthToken);
+        async (_, profileId: string) => {
+            return testOAuthConnection(profileId);
         }
     );
 }

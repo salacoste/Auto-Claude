@@ -330,8 +330,9 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
         }
 
         // Make REAL API call via Python backend
+        // Pass profileId so main process can decrypt the token
         try {
-          const result = await window.electronAPI.testOAuthToken(profile.oauthToken);
+          const result = await window.electronAPI.testOAuthToken(integration.profileId);
 
           if (result.success && result.data) {
             if (result.data.status === 'success') {
