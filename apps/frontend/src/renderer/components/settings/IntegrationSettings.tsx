@@ -335,7 +335,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
           message: `✓ OAuth integration verified! Profile "${integration.name}" is authenticated${integration.email ? ` as ${integration.email}` : ''} and ready to use.`
         };
       } else {
-        // Test API Token by validating configuration
+        // Test API Token by making REAL API request via backend
         if (!integration.apiToken || !integration.baseUrl) {
           return {
             success: false,
@@ -353,11 +353,38 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
           };
         }
 
-        // Configuration looks good
-        return {
-          success: true,
-          message: `✓ Configuration valid! API Token integration "${integration.name}" is configured for ${integration.baseUrl}`
-        };
+        // Make REAL API call via Python backend
+        try {
+          const result = await window.electronAPI.testApiToken(
+            integration.apiToken,
+            integration.baseUrl
+          );
+
+          if (result.success && result.data) {
+            if (result.data.status === 'success') {
+              return {
+                success: true,
+                message: `✓ Connection successful! API Token integration "${integration.name}" is verified and ready for ${integration.baseUrl}`
+              };
+            } else {
+              return {
+                success: false,
+                message: result.data.message || 'Connection test failed'
+              };
+            }
+          } else {
+            return {
+              success: false,
+              message: result.error || 'Failed to test connection'
+            };
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          return {
+            success: false,
+            message: `Connection test failed: ${errorMessage}`
+          };
+        }
       }
     } catch (error) {
       return {
