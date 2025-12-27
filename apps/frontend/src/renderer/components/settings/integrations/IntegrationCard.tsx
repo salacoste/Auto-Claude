@@ -264,8 +264,14 @@ export function IntegrationCard({
                                                 <select
                                                     value={modelMapping?.opus || ''}
                                                     onChange={(e) => {
-                                                        const newMapping = { ...modelMapping, opus: e.target.value || undefined };
-                                                        setModelMapping(newMapping);
+                                                        const value = e.target.value;
+                                                        const newMapping = { ...modelMapping };
+                                                        if (value) {
+                                                            newMapping.opus = value;
+                                                        } else {
+                                                            delete newMapping.opus;
+                                                        }
+                                                        setModelMapping(Object.keys(newMapping).length > 0 ? newMapping : undefined);
                                                     }}
                                                     className="w-full mt-1 h-8 px-2 text-xs rounded border border-input bg-background"
                                                 >
@@ -284,8 +290,14 @@ export function IntegrationCard({
                                                 <select
                                                     value={modelMapping?.sonnet || ''}
                                                     onChange={(e) => {
-                                                        const newMapping = { ...modelMapping, sonnet: e.target.value || undefined };
-                                                        setModelMapping(newMapping);
+                                                        const value = e.target.value;
+                                                        const newMapping = { ...modelMapping };
+                                                        if (value) {
+                                                            newMapping.sonnet = value;
+                                                        } else {
+                                                            delete newMapping.sonnet;
+                                                        }
+                                                        setModelMapping(Object.keys(newMapping).length > 0 ? newMapping : undefined);
                                                     }}
                                                     className="w-full mt-1 h-8 px-2 text-xs rounded border border-input bg-background"
                                                 >
@@ -304,8 +316,14 @@ export function IntegrationCard({
                                                 <select
                                                     value={modelMapping?.haiku || ''}
                                                     onChange={(e) => {
-                                                        const newMapping = { ...modelMapping, haiku: e.target.value || undefined };
-                                                        setModelMapping(newMapping);
+                                                        const value = e.target.value;
+                                                        const newMapping = { ...modelMapping };
+                                                        if (value) {
+                                                            newMapping.haiku = value;
+                                                        } else {
+                                                            delete newMapping.haiku;
+                                                        }
+                                                        setModelMapping(Object.keys(newMapping).length > 0 ? newMapping : undefined);
                                                     }}
                                                     className="w-full mt-1 h-8 px-2 text-xs rounded border border-input bg-background"
                                                 >
