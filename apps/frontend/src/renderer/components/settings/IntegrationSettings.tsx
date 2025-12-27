@@ -7,30 +7,18 @@ import {
   Info,
   Users,
   Plus,
-  Trash2,
-  Star,
-  Check,
-  Pencil,
-  X,
-  Loader2,
-  LogIn,
-  ChevronDown,
-  ChevronRight,
-  RefreshCw,
-  Activity,
-  AlertCircle,
   Cloud
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Switch } from '../ui/switch';
 import { cn } from '../../lib/utils';
 import { SettingsSection } from './SettingsSection';
 import { loadClaudeProfiles as loadGlobalClaudeProfiles } from '../../stores/claude-profile-store';
+import { IntegrationCard } from './integrations/IntegrationCard';
 import { ApiTokenIntegrationForm } from './integrations/ApiTokenIntegrationForm';
-import type { AppSettings, ClaudeProfile, ClaudeAutoSwitchSettings } from '../../../shared/types';
-import type { Integration } from '../../../shared/types/integration';
+import type { AppSettings, ClaudeProfile } from '../../../shared/types';
+import type { UnifiedIntegration, OAuthIntegration, ApiTokenIntegration } from '../../../shared/types/integration';
 
 interface IntegrationSettingsProps {
   settings: AppSettings;
@@ -44,42 +32,33 @@ interface IntegrationSettingsProps {
 export function IntegrationSettings({ settings, onSettingsChange, isOpen }: IntegrationSettingsProps) {
   const { t } = useTranslation('settings');
   const { t: tCommon } = useTranslation('common');
+
   // Password visibility toggle for global API keys
   const [showGlobalOpenAIKey, setShowGlobalOpenAIKey] = useState(false);
 
-  // Claude Accounts state
-  const [claudeProfiles, setClaudeProfiles] = useState<ClaudeProfile[]>([]);
-  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
-  const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
-  const [newProfileName, setNewProfileName] = useState('');
-  const [isAddingProfile, setIsAddingProfile] = useState(false);
-  const [deletingProfileId, setDeletingProfileId] = useState<string | null>(null);
-  const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
-  const [editingProfileName, setEditingProfileName] = useState('');
-  const [authenticatingProfileId, setAuthenticatingProfileId] = useState<string | null>(null);
-  const [expandedTokenProfileId, setExpandedTokenProfileId] = useState<string | null>(null);
-  const [manualToken, setManualToken] = useState('');
-  const [manualTokenEmail, setManualTokenEmail] = useState('');
-  const [showManualToken, setShowManualToken] = useState(false);
-  const [savingTokenProfileId, setSavingTokenProfileId] = useState<string | null>(null);
+  // Unified integrations state
+  const [integrations, setIntegrations] = useState<UnifiedIntegration[]>([]);
+  const [claudeProfiles, setClaudeProfiles] = useState<Record<string, ClaudeProfile>>({});
+  const [activeIntegrationId, setActiveIntegrationId] = useState<string | null>(null);
 
-  // Auto-swap settings state
-  const [autoSwitchSettings, setAutoSwitchSettings] = useState<ClaudeAutoSwitchSettings | null>(null);
-  const [isLoadingAutoSwitch, setIsLoadingAutoSwitch] = useState(false);
+  // Type selector state
+  const [showTypeSelector, setShowTypeSelector] = useState(false);
+  const [newIntegrationName, setNewIntegrationName] = useState('');
 
-  // API Token Integration state
+  // API Token form state
   const [showApiTokenForm, setShowApiTokenForm] = useState(false);
-  const [integrations, setIntegrations] = useState<Record<string, Integration>>({});
+  const [apiTokenFormName, setApiTokenFormName] = useState('');
 
-  // Load Claude profiles and auto-swap settings when section is shown
+  // OAuth creation state
+  const [isCreatingOAuth, setIsCreatingOAuth] = useState(false);
+
+  // Load integrations and Claude profiles when section is shown
   useEffect(() => {
     if (isOpen) {
+      loadIntegrations();
       loadClaudeProfiles();
-      loadAutoSwitchSettings();
-      // Load integrations from settings
-      setIntegrations(settings.integrations || {});
     }
-  }, [isOpen, settings.integrations]);
+  }, [isOpen]);
 
   // Listen for OAuth authentication completion
   useEffect(() => {
