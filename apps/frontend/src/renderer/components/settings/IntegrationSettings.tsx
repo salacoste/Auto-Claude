@@ -112,12 +112,34 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     }
   };
 
-  const handleAddProfile = async () => {
-    if (!newProfileName.trim()) return;
+  // Type selector handlers
+  const handleStartAddIntegration = () => {
+    if (!newIntegrationName.trim()) return;
+    setShowTypeSelector(true);
+  };
 
-    setIsAddingProfile(true);
+  const handleSelectIntegrationType = async (type: 'oauth' | 'api-token') => {
+    if (type === 'oauth') {
+      await handleCreateOAuthIntegration();
+    } else {
+      setApiTokenFormName(newIntegrationName);
+      setShowApiTokenForm(true);
+      setShowTypeSelector(false);
+    }
+  };
+
+  const handleCancelTypeSelector = () => {
+    setShowTypeSelector(false);
+    setNewIntegrationName('');
+  };
+
+  // OAuth integration creation
+  const handleCreateOAuthIntegration = async () => {
+    if (!newIntegrationName.trim()) return;
+
+    setIsCreatingOAuth(true);
     try {
-      const profileName = newProfileName.trim();
+      const profileName = newIntegrationName.trim();
       const profileSlug = profileName.toLowerCase().replace(/\s+/g, '-');
 
       const result = await window.electronAPI.saveClaudeProfile({
@@ -132,8 +154,22 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
         const initResult = await window.electronAPI.initializeClaudeProfile(result.data.id);
 
         if (initResult.success) {
+          const oauthIntegration: OAuthIntegration = {
+            id: `oauth-${Date.now()}`,
+            type: 'oauth',
+            name: profileName,
+            isAuthenticated: false,
+            profileId: result.data.id,
+            createdAt: new Date().toISOString()
+          };
+
+          const updatedIntegrations = [...integrations, oauthIntegration];
+          setIntegrations(updatedIntegrations);
+          onSettingsChange({ ...settings, integrations: updatedIntegrations });
+
+          setNewIntegrationName('');
+          setShowTypeSelector(false);
           await loadClaudeProfiles();
-          setNewProfileName('');
 
           alert(
             `Authenticating "${profileName}"...\n\n` +
@@ -141,15 +177,28 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
             `The authentication will be saved automatically once complete.`
           );
         } else {
-          await loadClaudeProfiles();
           alert(`Failed to start authentication: ${initResult.error || 'Please try again.'}`);
         }
       }
     } catch (err) {
-      console.error('Failed to add profile:', err);
-      alert('Failed to add profile. Please try again.');
+      console.error('Failed to create OAuth integration:', err);
+      alert('Failed to create integration. Please try again.');
     } finally {
-      setIsAddingProfile(false);
+      setIsCreatingOAuth(false);
+    }
+  };
+
+  const handleReauthenticate = async (integration: OAuthIntegration) => {
+    try {
+      const result = await window.electronAPI.initializeClaudeProfile(integration.profileId);
+      if (result.success) {
+        alert(`Authenticating "${integration.name}"...`);
+      } else {
+        alert(`Failed to start authentication: ${result.error || 'Please try again.'}`);
+      }
+    } catch (err) {
+      console.error('Failed to re-authenticate:', err);
+      alert('Failed to start authentication. Please try again.');
     }
   };
 
