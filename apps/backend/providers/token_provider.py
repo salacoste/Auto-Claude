@@ -226,14 +226,41 @@ def get_models_sync(api_token: str, base_url: str) -> dict[str, Any]:
 
 def test_oauth_connection_sync(oauth_token: str) -> dict[str, Any]:
     """
-    Test OAuth connection with real API call.
+    Validate OAuth token format (OAuth tokens cannot be tested via API).
+    
+    NOTE: OAuth session tokens (sk-ant-oat01-*) are NOT API keys and cannot
+    be used with the /v1/messages endpoint. They are for SDK/client use only.
+    
+    We validate the token format instead of making an API call.
 
     Args:
         oauth_token: OAuth authentication token
 
     Returns:
-        Connection test result
+        Validation result with status and message
     """
-    # OAuth uses standard Anthropic API endpoint
-    provider = TokenProvider(oauth_token, "https://api.anthropic.com")
-    return asyncio.run(provider.test_connection())
+    import sys
+    
+    print(f"[test_oauth_connection_sync] Validating OAuth token format", file=sys.stderr)
+    print(f"[test_oauth_connection_sync] Token length: {len(oauth_token)}", file=sys.stderr)
+    
+    # Validate token exists and has content
+    if not oauth_token or len(oauth_token) < 20:
+        return {
+            "status": "error",
+            "message": "OAuth token is missing or invalid."
+        }
+    
+    # Validate token format (Claude OAuth tokens start with sk-ant-oat01-)
+    if not oauth_token.startswith("sk-ant-oat01-"):
+        return {
+            "status": "error",
+            "message": f"Invalid OAuth token format. Expected token starting with 'sk-ant-oat01-', got '{oauth_token[:15]}...'"
+        }
+    
+    print(f"[test_oauth_connection_sync] OAuth token format valid!", file=sys.stderr)
+    
+    return {
+        "status": "success",
+        "message": "OAuth token format is valid. Token will be used for Claude SDK authentication."
+    }
