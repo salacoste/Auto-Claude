@@ -18,6 +18,7 @@ from linear_updater import (
     linear_task_stuck,
 )
 from phase_config import get_phase_model, get_phase_thinking_budget
+from phase_event import ExecutionPhase, emit_phase
 from progress import (
     count_subtasks,
     count_subtasks_detailed,
@@ -148,6 +149,7 @@ async def run_autonomous_agent(
 
         # Update status for planning phase
         status_manager.update(state=BuildState.PLANNING)
+        emit_phase(ExecutionPhase.PLANNING, "Creating implementation plan")
         is_planning_phase = True
         current_log_phase = LogPhase.PLANNING
 
@@ -177,6 +179,9 @@ async def run_autonomous_agent(
             
         # Ensure plan status is set to coding
         update_plan_status(spec_dir, "coding")
+
+        # Emit phase event when continuing build
+        emit_phase(ExecutionPhase.CODING, "Continuing implementation")
 
     # Show human intervention hint
     content = [
@@ -278,6 +283,7 @@ async def run_autonomous_agent(
             if is_planning_phase:
                 is_planning_phase = False
                 current_log_phase = LogPhase.CODING
+                emit_phase(ExecutionPhase.CODING, "Starting implementation")
                 if task_logger:
                     task_logger.end_phase(
                         LogPhase.PLANNING,
@@ -398,10 +404,11 @@ async def run_autonomous_agent(
 
         # Handle session status
         if status == "complete":
+            # Don't emit COMPLETE here - subtasks are done but QA hasn't run yet
+            # QA loop will emit COMPLETE after actual approval
             print_build_complete_banner(spec_dir)
             status_manager.update(state=BuildState.COMPLETE)
 
-            # End coding phase in task logger
             if task_logger:
                 task_logger.end_phase(
                     LogPhase.CODING,
@@ -409,7 +416,6 @@ async def run_autonomous_agent(
                     message="All subtasks completed successfully",
                 )
 
-            # Notify Linear that build is complete (moving to QA)
             if linear_task and linear_task.task_id:
                 await linear_build_complete(spec_dir)
                 print_status("Linear notified: build complete, ready for QA", "success")
@@ -444,6 +450,7 @@ async def run_autonomous_agent(
             await asyncio.sleep(AUTO_CONTINUE_DELAY_SECONDS)
 
         elif status == "error":
+            emit_phase(ExecutionPhase.FAILED, "Session encountered an error")
             print_status("Session encountered an error", "error")
             print(muted("Will retry with a fresh session..."))
             status_manager.update(state=BuildState.ERROR)

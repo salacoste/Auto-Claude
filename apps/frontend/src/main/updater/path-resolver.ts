@@ -37,13 +37,7 @@ export function getBundledSourcePath(): string {
     if (existsSync(normalized) && existsSync(markerPath)) {
       // HIGH PRIORITY FIX: In dev mode, skip paths that look like packaged apps
       if (!app.isPackaged) {
-        const isPackagedAppPath =
-          normalized.includes('/Applications/') ||
-          normalized.includes('/Contents/Resources/') ||
-          normalized.includes('\\Program Files\\') ||
-          normalized.includes('\\WindowsApps\\');
-
-        if (isPackagedAppPath) {
+        if (isPathLookingLikePackagedApp(normalized)) {
           console.log('[path-resolver] Skipping packaged app path candidate:', normalized);
           continue; // Try next path
         }
@@ -142,4 +136,50 @@ export function getUpdateTargetPath(): string {
     // In development, update the actual source
     return getBundledSourcePath();
   }
+}
+
+/**
+ * Check if a path looks like it belongs to a packaged application.
+ * Used to avoid accidentally selecting installed app resources when running in dev mode.
+ * 
+ * @param backendPath - The absolute path to test
+ * @returns true if the path appears to be part of a packaged app bundle
+ */
+export function isPathLookingLikePackagedApp(backendPath: string): boolean {
+  if (process.platform === 'darwin') {
+    // macOS: Packaged apps always have .app/Contents/Resources structure
+    // This avoids formatting false positive for paths like /Users/dev/Applications/project
+    // We check for the specific internal structure of a packaged app
+    return backendPath.includes('.app/Contents/Resources');
+  }
+
+  if (process.platform === 'win32') {
+    const lowerPath = backendPath.toLowerCase();
+    // Windows: Check that path looks like a system installation path
+    // AND has the structure of an Electron app resources folder
+
+    // Check for standard installation roots at the START of the path
+    const isSystemPath =
+      /^[a-z]:\\program files/i.test(lowerPath) ||
+      /^[a-z]:\\program files \(x86\)/i.test(lowerPath) ||
+      lowerPath.includes('\\windowsapps\\');
+
+    // Check for electron structure
+    const isElectronStructure =
+      lowerPath.includes('\\resources\\app.asar') ||
+      lowerPath.includes('\\resources\\backend');
+
+    // Only consider it packaged if it matches both criteria, or looks extremely like a system path
+    // For Windows, just matching "Program Files" is dangerous if user keeps code there.
+    // We require it to have the electron 'resources' folder structure unless it's a WindowsApp
+    if (lowerPath.includes('\\windowsapps\\')) {
+      return true;
+    }
+
+    // For Program Files, enforce electron structure to avoid false positives
+    return isSystemPath && isElectronStructure;
+  }
+
+  // Linux/Other: usually /opt/... or /usr/lib/... but less prone to ambiguity
+  return backendPath.startsWith('/opt/') || backendPath.startsWith('/usr/lib') || backendPath.startsWith('/usr/share');
 }

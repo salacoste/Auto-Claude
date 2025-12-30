@@ -50,7 +50,7 @@ def load_implementation_plan(spec_dir: Path) -> dict | None:
     if not plan_file.exists():
         return None
     try:
-        with open(plan_file) as f:
+        with open(plan_file, encoding='utf-8') as f:
             return json.load(f)
     except (OSError, json.JSONDecodeError):
         return None
@@ -116,9 +116,17 @@ def sync_plan_to_source(spec_dir: Path, source_spec_dir: Path | None) -> bool:
         return False
 
 
+VALID_PLAN_STATUSES = {"planning", "coding", "review", "done"}
+VALID_SUBTASK_STATUSES = {"pending", "in_progress", "completed", "failed"}
+
+
 def update_subtask_status(spec_dir: Path, subtask_id: str, status: str) -> bool:
     """
     Update the status of a subtask in implementation_plan.json.
+
+    Side Effect:
+        If a subtask status is set to "in_progress", the top-level
+        plan["status"] is automatically updated to "coding".
 
     Args:
         spec_dir: Directory containing implementation_plan.json
@@ -128,12 +136,16 @@ def update_subtask_status(spec_dir: Path, subtask_id: str, status: str) -> bool:
     Returns:
         True if successful
     """
+    if status not in VALID_SUBTASK_STATUSES:
+        logger.warning(f"Invalid subtask status: {status}")
+        return False
+
     plan_file = spec_dir / "implementation_plan.json"
     if not plan_file.exists():
         return False
 
     try:
-        with open(plan_file) as f:
+        with open(plan_file, encoding='utf-8') as f:
             plan = json.load(f)
 
         updated = False
@@ -151,7 +163,7 @@ def update_subtask_status(spec_dir: Path, subtask_id: str, status: str) -> bool:
             if status == "in_progress":
                 plan["status"] = "coding"
             
-            with open(plan_file, "w") as f:
+            with open(plan_file, "w", encoding='utf-8') as f:
                 json.dump(plan, f, indent=2)
             return True
         return False
@@ -171,17 +183,21 @@ def update_plan_status(spec_dir: Path, status: str) -> bool:
     Returns:
         True if successful
     """
+    if status not in VALID_PLAN_STATUSES:
+        logger.warning(f"Invalid plan status: {status}")
+        return False
+
     plan_file = spec_dir / "implementation_plan.json"
     if not plan_file.exists():
         return False
 
     try:
-        with open(plan_file) as f:
+        with open(plan_file, encoding='utf-8') as f:
             plan = json.load(f)
 
         plan["status"] = status
         
-        with open(plan_file, "w") as f:
+        with open(plan_file, "w", encoding='utf-8') as f:
             json.dump(plan, f, indent=2)
         return True
     except (OSError, json.JSONDecodeError) as e:

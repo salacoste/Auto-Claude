@@ -23,7 +23,7 @@
     },
     "paths": {
       "title": "Chemins",
-      "description": "Chemins Python et framework"
+      "description": "Outils CLI et chemins framework"
     },
     "integrations": {
       "title": "Intégrations",
@@ -67,8 +67,24 @@
     "paths": "Chemins",
     "pathsDescription": "Configurer les chemins des exécutables et du framework",
     "pythonPath": "Chemin Python",
-    "pythonPathDescription": "Chemin vers l'exécutable Python (laisser vide pour la valeur par défaut)",
+    "pythonPathDescription": "Chemin vers l'exécutable Python (laisser vide pour détection automatique)",
     "pythonPathPlaceholder": "python3 (par défaut)",
+    "gitPath": "Chemin Git",
+    "gitPathDescription": "Chemin vers l'exécutable Git (laisser vide pour détection automatique)",
+    "gitPathPlaceholder": "git (par défaut)",
+    "githubCLIPath": "Chemin GitHub CLI",
+    "githubCLIPathDescription": "Chemin vers l'exécutable GitHub CLI (gh) (laisser vide pour détection automatique)",
+    "githubCLIPathPlaceholder": "gh (par défaut)",
+    "detectedPath": "Détecté automatiquement",
+    "detectedVersion": "Version",
+    "detectedSource": "Source",
+    "sourceUserConfig": "Configuration utilisateur",
+    "sourceVenv": "Environnement virtuel",
+    "sourceHomebrew": "Homebrew",
+    "sourceSystemPath": "PATH système",
+    "sourceBundled": "Intégré",
+    "sourceFallback": "Valeur par défaut",
+    "notDetected": "Non détecté",
     "autoClaudePath": "Chemin Auto Claude",
     "autoClaudePathDescription": "Chemin relatif vers le répertoire auto-claude dans les projets",
     "autoClaudePathPlaceholder": "auto-claude (par défaut)",
@@ -198,8 +214,15 @@
     }
   },
   "integrations": {
-    "title": "Intégrations",
+    "title": "Integrations",
     "description": "Gérer les comptes Claude et les clés API",
+    "section": {
+      "title": "Intégrations",
+      "count_one": "{{count}} intégration",
+      "count_other": "{{count}} intégrations",
+      "activeStatus": "1 active",
+      "description": "Gérez les comptes Claude OAuth et les intégrations par token API. Une seule intégration peut être active à la fois."
+    },
     "claudeAccounts": "Comptes Claude",
     "claudeAccountsDescription": "Ajoutez plusieurs abonnements Claude pour basculer automatiquement entre eux quand vous atteignez les limites.",
     "noAccountsYet": "Aucun compte configuré",
@@ -236,5 +259,36 @@
     "apiKeysInfo": "Les clés définies ici sont utilisées par défaut. Les projets individuels peuvent les remplacer dans leurs paramètres.",
     "openaiKey": "Clé API OpenAI",
     "openaiKeyDescription": "Requise pour le backend mémoire Graphiti (embeddings)"
+  },
+  "integrationSelector": {
+    "title": "Choisir le type d'intégration",
+    "description": "Sélectionnez le mode d'authentification pour \"{{name}}\"",
+    "oauth": {
+      "title": "Claude OAuth",
+      "description": "Utilisez votre compte Claude"
+    },
+    "apiToken": {
+      "title": "Token API",
+      "description": "Utiliser z.ai ou un fournisseur personnalisé"
+    }
+  },
+  "alerts": {
+    "modelMappingSaved": "✓ Correspondance des modèles enregistrée !",
+    "integrationAuthenticated": "✅ Intégration authentifiée avec succès !",
+    "authSuccess": "✅ Intégration authentifiée avec succès !",
+    "authSuccessWithEmail": "✅ Intégration authentifiée avec succès !\n\nCompte : {{email}}",
+    "authenticating": "Authentification de \"{{name}}\"...",
+    "authInstructions": "Une fenêtre de navigateur va s'ouvrir pour vous connecter à votre compte Claude.\n\nL'authentification sera enregistrée automatiquement une fois terminée.",
+    "authFailed": "Échec du démarrage de l'authentification : {{error}}",
+    "createFailed": "Échec de la création de l'intégration. Veuillez réessayer.",
+    "deleteConfirm": "Supprimer l'intégration \"{{name}}\" ?",
+    "connectionSuccess": "✓ Connexion réussie !",
+    "connectionFailed": "Échec du test de connexion : {{error}}",
+    "fetchModelsFailed": "❌ Échec de la récupération des modèles :\n\n{{error}}"
+  },
+  "integrationActions": {
+    "cancel": "Annuler",
+    "addIntegration": "Ajouter l'intégration",
+    "placeholderName": "Nom de l'intégration (ex: Travail, Personnel, z.ai)"
   }
 }

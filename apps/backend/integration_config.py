@@ -10,27 +10,22 @@ This allows API token integrations (like z.ai GLM) to override default model IDs
 
 import json
 import os
+import sys
 from pathlib import Path
-from typing import TypedDict
-
-
-class ModelMapping(TypedDict, total=False):
-    """Model mapping from integration settings."""
-
-    opus: str
-    sonnet: str
-    haiku: str
+from typing import TypedDict, Literal
 
 
 class ApiTokenIntegration(TypedDict, total=False):
     """API token integration from settings."""
 
     id: str
-    type: str  # 'api-token'
+    type: Literal['api-token']
     name: str
+    description: str
     apiToken: str
     baseUrl: str
     modelMapping: ModelMapping
+    createdAt: str
 
 
 def get_electron_settings_path() -> Path | None:
@@ -41,17 +36,17 @@ def get_electron_settings_path() -> Path | None:
         Path to settings.json or None if not found
     """
     # Standard path for Electron apps
-    if os.name == "nt":  # Windows
+    if sys.platform == "win32":
         app_data = Path(os.environ.get("APPDATA", ""))
         settings_path = app_data / "auto-claude-ui" / "settings.json"
-    elif os.name == "posix":  # macOS/Linux
+    elif sys.platform == "darwin":
         home = Path.home()
-        if os.uname().sysname == "Darwin":  # macOS
-            settings_path = (
-                home / "Library" / "Application Support" / "auto-claude-ui" / "settings.json"
-            )
-        else:  # Linux
-            settings_path = home / ".config" / "auto-claude-ui" / "settings.json"
+        settings_path = (
+            home / "Library" / "Application Support" / "auto-claude-ui" / "settings.json"
+        )
+    elif sys.platform == "linux":
+        home = Path.home()
+        settings_path = home / ".config" / "auto-claude-ui" / "settings.json"
     else:
         return None
 
@@ -70,7 +65,7 @@ def get_active_integration() -> ApiTokenIntegration | None:
         return None
 
     try:
-        with open(settings_path) as f:
+        with open(settings_path, encoding='utf-8') as f:
             settings = json.load(f)
 
         active_id = settings.get("activeIntegrationId")
@@ -106,7 +101,7 @@ def get_model_mapping() -> ModelMapping | None:
     return integration.get("modelMapping") if integration else None
 
 
-def resolve_model_with_integration(model_shorthand: str) -> str:
+def resolve_model_with_integration(model_shorthand: str, default: str = "") -> str:
     """
     Resolve model shorthand using active integration's model mapping.
 
@@ -115,6 +110,7 @@ def resolve_model_with_integration(model_shorthand: str) -> str:
 
     Args:
         model_shorthand: 'opus', 'sonnet', or 'haiku'
+        default: Value to return if no mapping found (default: "")
 
     Returns:
         Resolved model ID (custom or default)
@@ -124,8 +120,8 @@ def resolve_model_with_integration(model_shorthand: str) -> str:
     if mapping and model_shorthand in mapping:
         return mapping[model_shorthand]
 
-    # Fallback to empty string - caller should use default mapping
-    return ""
+    # Fallback to provided default
+    return default
 
 
 def get_api_token() -> str | None:

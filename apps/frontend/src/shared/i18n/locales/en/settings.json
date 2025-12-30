@@ -23,7 +23,7 @@
     },
     "paths": {
       "title": "Paths",
-      "description": "Python and framework paths"
+      "description": "CLI tools and framework paths"
     },
     "integrations": {
       "title": "Integrations",
@@ -67,8 +67,24 @@
     "paths": "Paths",
     "pathsDescription": "Configure executable and framework paths",
     "pythonPath": "Python Path",
-    "pythonPathDescription": "Path to Python executable (leave empty for default)",
+    "pythonPathDescription": "Path to Python executable (leave empty for auto-detection)",
     "pythonPathPlaceholder": "python3 (default)",
+    "gitPath": "Git Path",
+    "gitPathDescription": "Path to Git executable (leave empty for auto-detection)",
+    "gitPathPlaceholder": "git (default)",
+    "githubCLIPath": "GitHub CLI Path",
+    "githubCLIPathDescription": "Path to GitHub CLI (gh) executable (leave empty for auto-detection)",
+    "githubCLIPathPlaceholder": "gh (default)",
+    "detectedPath": "Auto-detected",
+    "detectedVersion": "Version",
+    "detectedSource": "Source",
+    "sourceUserConfig": "User Configuration",
+    "sourceVenv": "Virtual Environment",
+    "sourceHomebrew": "Homebrew",
+    "sourceSystemPath": "System PATH",
+    "sourceBundled": "Bundled",
+    "sourceFallback": "Fallback",
+    "notDetected": "Not detected",
     "autoClaudePath": "Auto Claude Path",
     "autoClaudePathDescription": "Relative path to auto-claude directory in projects",
     "autoClaudePathPlaceholder": "auto-claude (default)",
@@ -200,6 +216,13 @@
   "integrations": {
     "title": "Integrations",
     "description": "Manage Claude accounts and API keys",
+    "section": {
+      "title": "Integrations",
+      "count_one": "{{count}} integration",
+      "count_other": "{{count}} integrations",
+      "activeStatus": "1 active",
+      "description": "Manage Claude OAuth accounts and API token-based integrations. Only one integration can be active at a time."
+    },
     "claudeAccounts": "Claude Accounts",
     "claudeAccountsDescription": "Add multiple Claude subscriptions to automatically switch between them when you hit rate limits.",
     "noAccountsYet": "No accounts configured yet",
@@ -236,5 +259,36 @@
     "apiKeysInfo": "Keys set here are used as defaults. Individual projects can override these in their settings.",
     "openaiKey": "OpenAI API Key",
     "openaiKeyDescription": "Required for Graphiti memory backend (embeddings)"
+  },
+  "integrationSelector": {
+    "title": "Choose Integration Type",
+    "description": "Select how you want to authenticate for \"{{name}}\"",
+    "oauth": {
+      "title": "Claude OAuth",
+      "description": "Use your Claude account"
+    },
+    "apiToken": {
+      "title": "API Token",
+      "description": "Use z.ai or custom provider"
+    }
+  },
+  "alerts": {
+    "modelMappingSaved": "✓ Model mapping saved successfully!",
+    "integrationAuthenticated": "✅ Integration authenticated successfully!",
+    "authSuccess": "✅ Integration authenticated successfully!",
+    "authSuccessWithEmail": "✅ Integration authenticated successfully!\n\nAccount: {{email}}",
+    "authenticating": "Authenticating \"{{name}}\"...",
+    "authInstructions": "A browser window will open for you to log in with your Claude account.\n\nThe authentication will be saved automatically once complete.",
+    "authFailed": "Failed to start authentication: {{error}}",
+    "createFailed": "Failed to create integration. Please try again.",
+    "deleteConfirm": "Delete integration \"{{name}}\"?",
+    "connectionSuccess": "✓ Connection successful!",
+    "connectionFailed": "Connection test failed: {{error}}",
+    "fetchModelsFailed": "❌ Failed to fetch models:\n\n{{error}}"
+  },
+  "integrationActions": {
+    "cancel": "Cancel",
+    "addIntegration": "Add Integration",
+    "placeholderName": "Integration name (e.g., Work, Personal, z.ai)"
   }
 }

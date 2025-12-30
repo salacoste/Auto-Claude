@@ -5,9 +5,9 @@
 export type IntegrationType = 'oauth' | 'api-token';
 
 export interface ModelMapping {
-    opus: string;    // e.g., "GLM-4.7" or "claude-3-opus-20240229"
-    sonnet: string;  // e.g., "GLM-4.7" or "claude-3-5-sonnet-20241022"
-    haiku: string;   // e.g., "GLM-4.5-Air" or "claude-3-haiku-20240307"
+    opus?: string;    // e.g., "GLM-4.7" or "claude-3-opus-20240229"
+    sonnet?: string;  // e.g., "GLM-4.7" or "claude-3-5-sonnet-20241022"
+    haiku?: string;   // e.g., "GLM-4.5-Air" or "claude-3-haiku-20240307"
 }
 
 /**

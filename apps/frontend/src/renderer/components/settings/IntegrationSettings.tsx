@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Key,
@@ -19,7 +19,7 @@ import { loadClaudeProfiles as loadGlobalClaudeProfiles } from '../../stores/cla
 import { IntegrationCard } from './integrations/IntegrationCard';
 import { ApiTokenIntegrationForm } from './integrations/ApiTokenIntegrationForm';
 import type { AppSettings, ClaudeProfile } from '../../../shared/types';
-import type { UnifiedIntegration, OAuthIntegration, ApiTokenIntegration } from '../../../shared/types/integration';
+import type { UnifiedIntegration, OAuthIntegration, ApiTokenIntegration, ModelMapping } from '../../../shared/types/integration';
 
 interface IntegrationSettingsProps {
   settings: AppSettings;
@@ -61,46 +61,65 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     }
   }, [isOpen, settings.integrations, settings.activeIntegrationId]); // Re-load when settings change
 
-  // Listen for OAuth authentication completion
+  // Ref to hold the latest settings and callback to avoid stale closures in event listener
+  const settingsRef = useRef<AppSettings>(settings);
+  const onSettingsChangeRef = useRef(onSettingsChange);
+
+  // Update refs when props change
+  useEffect(() => {
+    settingsRef.current = settings;
+    onSettingsChangeRef.current = onSettingsChange;
+  }, [settings, onSettingsChange]);
+
+  // Listen for OAuth success
   useEffect(() => {
     console.log('[IntegrationSettings] Setting up OAuth listener...');
 
-    const unsubscribe = window.electronAPI.onTerminalOAuthToken(async (info) => {
+    const unsubscribe = window.electronAPI.onTerminalOAuthToken(async (info: { success: boolean; profileId?: string; email?: string }) => {
       console.log('[IntegrationSettings] OAuth event received!', info);
 
       if (info.success && info.profileId) {
         console.log('[IntegrationSettings] Processing successful OAuth for profile:', info.profileId);
 
-        // Update OAuth integration authentication status
-        // Use functional update to avoid stale closure over integrations
-        setIntegrations(currentIntegrations => {
-          console.log('[IntegrationSettings] Current integrations:', currentIntegrations.length);
+        // Use refs to get latest state
+        const currentSettings = settingsRef.current;
 
-          const updatedIntegrations = currentIntegrations.map(integration => {
-            if (integration.type === 'oauth' && integration.profileId === info.profileId) {
-              console.log('[IntegrationSettings] Found matching integration, updating...');
-              return {
-                ...integration,
-                isAuthenticated: true,
-                email: info.email
-              };
-            }
-            return integration;
-          });
+        let found = false;
+        const updatedIntegrations = (currentSettings.integrations || []).map(integration => {
+          if (integration.type === 'oauth' && integration.profileId === info.profileId) {
+            console.log('[IntegrationSettings] Found matching integration, updating...');
+            found = true;
+            return {
+              ...integration,
+              isAuthenticated: true,
+              email: info.email
+            };
+          }
+          return integration;
+        });
 
+        if (found) {
           console.log('[IntegrationSettings] Updated integrations:', updatedIntegrations.length);
 
-          // Save to settings
-          onSettingsChange({
-            ...settings,
+          // Save to settings using ref callback
+          onSettingsChangeRef.current({
+            ...currentSettings,
             integrations: updatedIntegrations
           });
 
-          return updatedIntegrations;
-        });
+          // Update local state if needed (though onSettingsChange usually triggers re-render)
+          setIntegrations(updatedIntegrations);
 
-        await loadClaudeProfiles();
-        alert(`✅ Integration authenticated successfully!${info.email ? `\n\nAccount: ${info.email}` : ''}`);
+          await loadClaudeProfiles();
+          // Using i18n for success message with proper keys
+          if (info.email) {
+            alert(t('alerts.authSuccessWithEmail', { email: info.email }));
+          } else {
+            alert(t('alerts.authSuccess'));
+          }
+        } else {
+          console.log('[IntegrationSettings] OAuth event not successful or missing profileId:', info);
+        }
       } else {
         console.log('[IntegrationSettings] OAuth event not successful or missing profileId:', info);
       }
@@ -110,7 +129,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
       console.log('[IntegrationSettings] Cleaning up OAuth listener');
       unsubscribe();
     };
-  }, []); // Empty deps - listener only needs to be set up once
+  }, []); // Empty deps - listener only needs to be set up once, refs handle freshness
 
 
   const loadIntegrations = () => {
@@ -204,7 +223,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
       }
     } catch (err) {
       console.error('Failed to create OAuth integration:', err);
-      alert('Failed to create integration. Please try again.');
+      alert(t('alerts.createFailed'));
     } finally {
       setIsCreatingOAuth(false);
     }
@@ -214,13 +233,13 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     try {
       const result = await window.electronAPI.initializeClaudeProfile(integration.profileId);
       if (result.success) {
-        alert(`Authenticating "${integration.name}"...`);
+        alert(t('alerts.authenticating', { name: integration.name }));
       } else {
-        alert(`Failed to start authentication: ${result.error || 'Please try again.'}`);
+        alert(t('alerts.authFailed', { error: result.error || 'Please try again.' }));
       }
     } catch (err) {
       console.error('Failed to re-authenticate:', err);
-      alert('Failed to start authentication. Please try again.');
+      alert(t('alerts.authFailed', { error: 'Please try again.' }));
     }
   };
 
@@ -276,7 +295,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     const integration = integrations.find(i => i.id === integrationId);
     if (!integration) return;
 
-    if (!confirm(`Delete integration "${integration.name}"?`)) return;
+    if (!confirm(t('alerts.deleteConfirm', { name: integration.name }))) return;
 
     // If OAuth, also delete Claude profile
     if (integration.type === 'oauth') {
@@ -338,25 +357,25 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
             if (result.data.status === 'success') {
               return {
                 success: true,
-                message: `✓ Connection successful! OAuth integration "${integration.name}" is verified${integration.email ? ` as ${integration.email}` : ''} and ready to use.`
+                message: t('alerts.connectionSuccess') + ` OAuth integration "${integration.name}" is verified${integration.email ? ` as ${integration.email}` : ''} and ready to use.`
               };
             } else {
               return {
                 success: false,
-                message: result.data.message || 'Connection test failed'
+                message: result.data.message || t('alerts.connectionFailed', { error: 'Connection test failed' })
               };
             }
           } else {
             return {
               success: false,
-              message: result.error || 'Failed to test connection'
+              message: result.error || t('alerts.connectionFailed', { error: 'Failed to test connection' })
             };
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           return {
             success: false,
-            message: `Connection test failed: ${errorMessage}`
+            message: t('alerts.connectionFailed', { error: errorMessage })
           };
         }
       } else {
@@ -389,25 +408,25 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
             if (result.data.status === 'success') {
               return {
                 success: true,
-                message: `✓ Connection successful! API Token integration "${integration.name}" is verified and ready for ${integration.baseUrl}`
+                message: t('alerts.connectionSuccess') + ` API Token integration "${integration.name}" is verified and ready for ${integration.baseUrl}`
               };
             } else {
               return {
                 success: false,
-                message: result.data.message || 'Connection test failed'
+                message: result.data.message || t('alerts.connectionFailed', { error: 'Connection test failed' })
               };
             }
           } else {
             return {
               success: false,
-              message: result.error || 'Failed to test connection'
+              message: result.error || t('alerts.connectionFailed', { error: 'Failed to test connection' })
             };
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           return {
             success: false,
-            message: `Connection test failed: ${errorMessage}`
+            message: t('alerts.connectionFailed', { error: errorMessage })
           };
         }
       }
@@ -429,19 +448,19 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
       if (result.success && result.data?.models) {
         return result.data.models;
       } else {
-        alert(`❌ Failed to fetch models:\n\n${result.error || 'Unknown error'}`);
+        alert(t('alerts.fetchModelsFailed', { error: result.error || 'Unknown error' }));
         return [];
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      alert(`❌ Failed to fetch models:\n\n${errorMessage}`);
+      alert(t('alerts.fetchModelsFailed', { error: errorMessage }));
       return [];
     }
   };
 
-  const handleUpdateModelMapping = (integrationId: string, modelMapping: { opus?: string; sonnet?: string; haiku?: string }) => {
+  const handleUpdateModelMapping = (integrationId: string, modelMapping: Partial<ModelMapping>) => {
     // Clean mapping - remove undefined values
-    const cleanMapping: any = {};
+    const cleanMapping: Partial<ModelMapping> = {};
     if (modelMapping.opus) cleanMapping.opus = modelMapping.opus;
     if (modelMapping.sonnet) cleanMapping.sonnet = modelMapping.sonnet;
     if (modelMapping.haiku) cleanMapping.haiku = modelMapping.haiku;
@@ -450,7 +469,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
       if (int.id === integrationId && int.type === 'api-token') {
         return {
           ...int,
-          modelMapping: Object.keys(cleanMapping).length > 0 ? cleanMapping : undefined
+          modelMapping: Object.keys(cleanMapping).length > 0 ? (cleanMapping as ModelMapping) : undefined
         };
       }
       return int;
@@ -463,7 +482,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     });
 
     // Show success feedback (could use toast in future)
-    alert('✓ Model mapping saved successfully!');
+    alert(t('alerts.modelMappingSaved'));
   };
 
   return (
@@ -475,16 +494,16 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
         {/* Integrations Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-foreground">Integrations</h4>
+            <h4 className="text-sm font-semibold text-foreground">{t('integrations.section.title')}</h4>
             <p className="text-xs text-muted-foreground">
-              {integrations.length} integration{integrations.length !== 1 ? 's' : ''}
-              {activeIntegrationId && ' · 1 active'}
+              {t('integrations.section.count_other', { count: integrations.length })}
+              {activeIntegrationId && ` · ${t('integrations.section.activeStatus')}`}
             </p>
           </div>
 
           <div className="rounded-lg border border-border p-4 space-y-4">
             <p className="text-sm text-muted-foreground">
-              Manage Claude OAuth accounts and API token-based integrations. Only one integration can be active at a time.
+              {t('integrations.section.description')}
             </p>
 
 
@@ -520,33 +539,35 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
             ) : showTypeSelector ? (
               <div className="rounded-lg border border-primary bg-primary/5 p-4 space-y-3">
                 <div>
-                  <p className="text-sm font-medium text-foreground">Choose Integration Type</p>
+                  <p className="text-sm font-medium text-foreground">{t('integrationSelector.title')}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Select how you want to authenticate for "{newIntegrationName}"
+                    {t('integrationSelector.description', { name: newIntegrationName })}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <button
+                    type="button"
                     onClick={() => handleSelectIntegrationType('oauth')}
                     disabled={isCreatingOAuth}
                     className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
                   >
                     <Users className="h-8 w-8 text-primary" />
                     <div className="text-center">
-                      <p className="text-sm font-medium">Claude OAuth</p>
-                      <p className="text-xs text-muted-foreground">Use your Claude account</p>
+                      <p className="text-sm font-medium">{t('integrationSelector.oauth.title')}</p>
+                      <p className="text-xs text-muted-foreground">{t('integrationSelector.oauth.description')}</p>
                     </div>
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => handleSelectIntegrationType('api-token')}
                     className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/10 transition-colors"
                   >
                     <Cloud className="h-8 w-8 text-primary" />
                     <div className="text-center">
-                      <p className="text-sm font-medium">API Token</p>
-                      <p className="text-xs text-muted-foreground">Use z.ai or custom provider</p>
+                      <p className="text-sm font-medium">{t('integrationSelector.apiToken.title')}</p>
+                      <p className="text-xs text-muted-foreground">{t('integrationSelector.apiToken.description')}</p>
                     </div>
                   </button>
                 </div>
@@ -555,15 +576,14 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
                   variant="ghost"
                   size="sm"
                   onClick={handleCancelTypeSelector}
-                  className="w-full"
                 >
-                  Cancel
+                  {t('integrationActions.cancel')}
                 </Button>
               </div>
             ) : (
               <div className="flex items-center gap-2 pt-3 border-t border-border">
                 <Input
-                  placeholder="Integration name (e.g., Work, Personal, z.ai)"
+                  placeholder={t('integrationActions.placeholderName')}
                   value={newIntegrationName}
                   onChange={(e) => setNewIntegrationName(e.target.value)}
                   className="flex-1 h-8 text-sm"
@@ -580,7 +600,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
                   className="gap-1 shrink-0"
                 >
                   <Plus className="h-3 w-3" />
-                  Add Integration
+                  {t('integrationActions.addIntegration')}
                 </Button>
               </div>
             )}
