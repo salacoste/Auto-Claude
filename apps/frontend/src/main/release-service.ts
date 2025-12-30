@@ -706,9 +706,11 @@ export class ReleaseService extends EventEmitter {
         args.push('--prerelease');
       }
 
+      const gh = getToolPath('gh');
+
       // Use spawn for better handling of the notes content
       const result = await new Promise<string>((resolve, reject) => {
-        const child = spawn('gh', args, {
+        const child = spawn(gh, args, {
           cwd: projectPath,
           stdio: ['pipe', 'pipe', 'pipe']
         });
