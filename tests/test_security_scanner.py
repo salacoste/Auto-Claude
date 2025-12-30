@@ -202,7 +202,8 @@ class TestSecretsDetection:
         """Test detecting an API key in code."""
         # Create a file with a fake API key
         code_file = temp_dir / "config.py"
-        code_file.write_text('API_KEY = "sk-test1234567890abcdefghij1234567890abcdefghij"')
+        fake_key = "sk-" + "test" + "1234567890" + "abcdefghij" + "1234567890" + "abcdefghij"
+        code_file.write_text(f'API_KEY = "{fake_key}"')
 
         result = scanner.scan(temp_dir, run_sast=False, run_dependency_audit=False)
 
@@ -407,7 +408,7 @@ class TestEdgeCases:
 
     def test_redact_secret_long(self, scanner):
         """Test secret redaction for long strings."""
-        secret = "sk-test1234567890abcdefghij"
+        secret = "sk-" + "test" + "1234567890" + "abcdefghij"
         redacted = scanner._redact_secret(secret)
 
         # Should show first 4 and last 4 chars

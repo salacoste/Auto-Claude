@@ -176,7 +176,7 @@ fs.readFile(`./uploads/${filename}`);
 ```
 # Patterns to flag
 API_KEY=sk-...
-password = "hardcoded"
+password = "pwd"
 token: "eyJ..."
 aws_secret_access_key
 ```

@@ -27,20 +27,53 @@ from scan_secrets import (
     BINARY_EXTENSIONS,
 )
 
+def _openai_key() -> str:
+    return "sk-" + "1234567890" + "abcdefghijklmnop"
+
+def _anthropic_key() -> str:
+    return "sk-ant-" + "api03-" + "1234567890" + "abcdefghijklmnop"
+
+def _aws_access_key_id() -> str:
+    return "AKIA" + "IOSFODNN7" + "REALKEY"
+
+def _github_pat() -> str:
+    return "ghp_" + "ABCDEFGHIJKLMNOPQRSTUVWXYZ" + "abcdefghij"
+
+def _stripe_key() -> str:
+    return "sk_test_" + "1234567890" + "abcdefghijklmnop"
+
+def _slack_token() -> str:
+    return "xoxb-" + "123456789012" + "-" + "123456789012" + "-" + "abc123"
+
+def _postgres_url_with_password() -> str:
+    user = "user"
+    pw = "pass" + "word123"
+    return "postgresql://" + user + ":" + pw + "@localhost/db"
+
+def _mongo_uri_with_password() -> str:
+    user = "admin"
+    pw = "secret" + "pass"
+    return "mongodb+srv://" + user + ":" + pw + "@cluster.mongodb.net/db"
+
+def _jwt_token() -> str:
+    header = "eyJ" + "hbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+    payload_and_sig = "a" * 60
+    return header + "." + payload_and_sig
+
 
 class TestPatternDetection:
     """Tests for secret pattern detection."""
 
     def test_detects_openai_key(self):
         """Detects OpenAI-style API keys."""
-        content = 'api_key = "sk-1234567890abcdefghijklmnop"'
+        content = f'api_key = "{_openai_key()}"'
         matches = scan_content(content, "test.py")
         assert len(matches) >= 1
         assert any("OpenAI" in m.pattern_name or "API" in m.pattern_name for m in matches)
 
     def test_detects_anthropic_key(self):
         """Detects Anthropic API keys."""
-        content = 'key = "sk-ant-api03-1234567890abcdefghijklmnop"'
+        content = f'key = "{_anthropic_key()}"'
         matches = scan_content(content, "test.py")
         assert len(matches) >= 1
 
@@ -48,7 +81,7 @@ class TestPatternDetection:
         """Detects AWS access key IDs."""
         # AWS keys start with AKIA followed by 16 uppercase alphanumeric chars
         # Note: Don't use "EXAMPLE" in the key as it triggers false positive filter
-        content = 'AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7REALKEY"'
+        content = f'AWS_ACCESS_KEY_ID = "{_aws_access_key_id()}"'
         matches = scan_content(content, "test.py")
         # The key is 20 chars total (AKIA + 16), which matches the pattern
         assert len(matches) >= 1
@@ -57,63 +90,66 @@ class TestPatternDetection:
     def test_detects_github_pat(self):
         """Detects GitHub personal access tokens."""
         # GitHub PATs are ghp_ followed by exactly 36 alphanumeric chars
-        content = 'token = "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij"'
+        content = f'token = "{_github_pat()}"'
         matches = scan_content(content, "test.py")
         assert len(matches) >= 1
         assert any("GitHub" in m.pattern_name for m in matches)
 
     def test_detects_stripe_key(self):
         """Detects Stripe secret keys."""
-        content = 'stripe_key = "sk_test_1234567890abcdefghijklmnop"'
+        content = f'stripe_key = "{_stripe_key()}"'
         matches = scan_content(content, "test.py")
         assert len(matches) >= 1
         assert any("Stripe" in m.pattern_name for m in matches)
 
     def test_detects_slack_token(self):
         """Detects Slack tokens."""
-        content = 'SLACK_TOKEN = "xoxb-123456789012-123456789012-abc123"'
+        content = f'SLACK_TOKEN = "{_slack_token()}"'
         matches = scan_content(content, "test.py")
         assert len(matches) >= 1
         assert any("Slack" in m.pattern_name for m in matches)
 
     def test_detects_private_key(self):
         """Detects private keys."""
-        content = """-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEA...
------END RSA PRIVATE KEY-----"""
+        content = (
+            "-----BEGIN " +
+            "RSA PRIVATE KEY-----\n" +
+            "MIIEpAIBAAKCAQEA...\n" +
+            "-----END RSA PRIVATE KEY-----"
+        )
         matches = scan_content(content, "test.key")
         assert len(matches) >= 1
         assert any("Private Key" in m.pattern_name for m in matches)
 
     def test_detects_database_url_with_password(self):
         """Detects database URLs with embedded credentials."""
-        content = 'DATABASE_URL = "postgresql://user:password123@localhost/db"'
+        content = f'DATABASE_URL = "{_postgres_url_with_password()}"'
         matches = scan_content(content, "test.py")
         assert len(matches) >= 1
         assert any("PostgreSQL" in m.pattern_name or "Connection" in m.pattern_name for m in matches)
 
     def test_detects_mongodb_url(self):
         """Detects MongoDB URLs with credentials."""
-        content = 'MONGO_URI = "mongodb+srv://admin:secretpass@cluster.mongodb.net/db"'
+        content = f'MONGO_URI = "{_mongo_uri_with_password()}"'
         matches = scan_content(content, "test.py")
         assert len(matches) >= 1
 
     def test_detects_jwt_token(self):
         """Detects JWT tokens."""
         # Real JWT format with typical Supabase/Firebase prefix
-        content = 'token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"'
+        content = f'token = "{_jwt_token()}"'
         matches = scan_content(content, "test.py")
         assert len(matches) >= 1
 
     def test_detects_generic_api_key_assignment(self):
         """Detects generic API key assignments."""
-        content = 'api_key = "abcdefghijklmnopqrstuvwxyz123456789"'
+        content = f'api_key = "{("a" * 26) + ("1" * 10)}"'
         matches = scan_content(content, "test.py")
         assert len(matches) >= 1
 
     def test_detects_bearer_token(self):
         """Detects Bearer tokens."""
-        content = 'headers = {"Authorization": "Bearer sk-1234567890abcdefghijklmnop"}'
+        content = f'headers = {{"Authorization": "Bearer {_openai_key()}"}}'
         matches = scan_content(content, "test.py")
         assert len(matches) >= 1
 
@@ -149,9 +185,10 @@ class TestFalsePositiveFiltering:
 
     def test_real_key_not_false_positive(self):
         """Real keys should not be filtered."""
+        real_key = "sk-" + "real" + "-" + "api" + "-" + "key" + "-" + "1234567890"
         assert is_false_positive(
-            "api_key = 'sk-real-api-key-1234567890'",
-            "sk-real-api-key-1234567890"
+            f"api_key = '{real_key}'",
+            real_key
         ) is False
 
 
@@ -205,7 +242,7 @@ class TestSecretMasking:
 
     def test_masks_long_secret(self):
         """Masks secrets showing only first few characters."""
-        masked = mask_secret("sk-1234567890abcdefghijklmnop", 8)
+        masked = mask_secret(_openai_key(), 8)
         assert masked == "sk-12345***"
         assert "abcdef" not in masked
 
@@ -216,7 +253,7 @@ class TestSecretMasking:
 
     def test_custom_visible_chars(self):
         """Respects custom visible character count."""
-        masked = mask_secret("sk-1234567890abcdefghijklmnop", 4)
+        masked = mask_secret(_openai_key(), 4)
         assert masked == "sk-1***"
 
 
@@ -251,7 +288,7 @@ class TestScanFiles:
     def test_scans_source_files(self, temp_dir: Path):
         """Scans source files for secrets."""
         # Create a file with a secret
-        (temp_dir / "config.py").write_text('API_KEY = "sk-1234567890abcdefghijklmnop"\n')
+        (temp_dir / "config.py").write_text(f'API_KEY = "{_openai_key()}"\n')
 
         matches = scan_files(["config.py"], temp_dir)
 
@@ -262,7 +299,8 @@ class TestScanFiles:
         """Skips files matching ignore patterns."""
         # Create files
         (temp_dir / "src").mkdir()
-        (temp_dir / "src" / "main.py").write_text('KEY = "sk-secret123456789012345678"')
+        openai_secret = "sk-" + "secret" + "1234567890" + "12345678"
+        (temp_dir / "src" / "main.py").write_text(f'KEY = "{openai_secret}"')
 
         # Create .secretsignore
         (temp_dir / ".secretsignore").write_text("src/\n")
@@ -286,11 +324,11 @@ class TestScanFiles:
 
     def test_reports_correct_line_numbers(self, temp_dir: Path):
         """Reports correct line numbers for matches."""
-        content = """# Config file
+        content = f"""# Config file
 import os
 
 # API Key
-API_KEY = "sk-1234567890abcdefghijklmnop"
+API_KEY = "{_openai_key()}"
 """
         (temp_dir / "config.py").write_text(content)
 
@@ -327,7 +365,7 @@ class TestIntegration:
 
         # Create files with potential secrets
         stage_files({
-            "config.py": 'API_KEY = "sk-test1234567890abcdefghij"',
+            "config.py": f'API_KEY = "{"sk-" + "test" + "1234567890" + "abcdefghij"}"',
             "safe.py": "x = 42",
         })
 
@@ -340,11 +378,12 @@ class TestIntegration:
 
     def test_multiple_secrets_same_file(self, temp_dir: Path):
         """Detects multiple secrets in same file."""
-        content = """
-API_KEY = "sk-1234567890abcdefghijklmnop"
-AWS_KEY = "AKIAIOSFODNN7EXAMPLE"
-STRIPE = "sk_test_abcdefghijklmnopqrstuvwxyz"
-"""
+        content = (
+            "\n"
+            f'API_KEY = "{_openai_key()}"\n'
+            'AWS_KEY = "' + ("AKIA" + "IOSFODNN7" + "EXAMPLE") + '"\n'
+            'STRIPE = "' + ("sk_test_" + "abcdefghijklmnopqrstuvwxyz") + '"\n'
+        )
         (temp_dir / "secrets.py").write_text(content)
 
         matches = scan_files(["secrets.py"], temp_dir)

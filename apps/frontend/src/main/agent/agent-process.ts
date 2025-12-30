@@ -285,6 +285,7 @@ export class AgentProcessManager {
       env: {
         ...process.env,
         ...extraEnv,
+        // Intentionally merged last so the active integration's credentials override any caller-provided env.
         ...integrationEnv, // Include active integration env (API Key, OAuth token, Base URL)
         PYTHONUNBUFFERED: '1', // Ensure real-time output
         PYTHONIOENCODING: 'utf-8', // Ensure UTF-8 encoding on Windows

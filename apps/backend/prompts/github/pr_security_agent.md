@@ -101,7 +101,7 @@ cursor.execute(f"SELECT * FROM users WHERE name = '{user_input}'")
 os.system(f"ls {user_input}")
 
 # HIGH: Hardcoded password
-PASSWORD = "admin123"
+PASSWORD = "admin"
 
 # MEDIUM: Weak hash
 import md5

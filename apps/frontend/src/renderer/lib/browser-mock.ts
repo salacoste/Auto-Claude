@@ -7,6 +7,7 @@
  */
 
 import type { ElectronAPI } from '../../shared/types';
+import i18n from '../../shared/i18n';
 import {
   projectMock,
   taskMock,
@@ -91,18 +92,24 @@ const browserMockAPI: ElectronAPI = {
   stopRoadmap: async () => ({ success: true }),
 
   // Roadmap Event Listeners
-  onRoadmapProgress: () => () => { },
-  onRoadmapComplete: () => () => { },
-  onRoadmapError: () => () => { },
-  onRoadmapStopped: () => () => { },
+  onRoadmapProgress: () => () => {},
+  onRoadmapComplete: () => () => {},
+  onRoadmapError: () => () => {},
+  onRoadmapStopped: () => () => {},
   // Context Operations
   ...contextMock,
 
   // Environment Configuration & Integration Operations
   ...integrationMock,
-  testApiToken: async () => ({ success: true, data: { status: 'success', message: 'Mock connection successful' } }),
+  testApiToken: async () => ({
+    success: true,
+    data: { status: 'success', message: i18n.t('alerts.mockConnectionSuccess', { ns: 'settings' }) }
+  }),
   getApiModels: async () => ({ success: true, data: { status: 'success', models: ['claude-opus-4-5-20251101', 'claude-sonnet-4-5-20251101', 'claude-haiku-4-5-20251101'] } }),
-  testOAuthToken: async () => ({ success: true, data: { status: 'success', message: 'Mock OAuth successful' } }),
+  testOAuthToken: async () => ({
+    success: true,
+    data: { status: 'success', message: i18n.t('alerts.mockOAuthSuccess', { ns: 'settings' }) }
+  }),
 
   // Changelog & Release Operations
   ...changelogMock,
@@ -120,7 +127,7 @@ const browserMockAPI: ElectronAPI = {
     getGitHubIssue: async () => ({ success: true, data: null as any }),
     getIssueComments: async () => ({ success: true, data: [] }),
     checkGitHubConnection: async () => ({ success: true, data: { connected: false, repoFullName: undefined, error: undefined } }),
-    investigateGitHubIssue: () => { },
+    investigateGitHubIssue: () => {},
     importGitHubIssues: async () => ({ success: true, data: { success: true, imported: 0, failed: 0, issues: [] } }),
     createGitHubRelease: async () => ({ success: true, data: { url: '' } }),
     suggestReleaseVersion: async () => ({ success: true, data: { suggestedVersion: '1.0.0', currentVersion: '0.0.0', bumpType: 'minor' as const, commitCount: 0, reason: 'Initial' } }),
@@ -135,21 +142,21 @@ const browserMockAPI: ElectronAPI = {
     createGitHubRepo: async () => ({ success: true, data: { fullName: '', url: '' } }),
     addGitRemote: async () => ({ success: true, data: { remoteUrl: '' } }),
     listGitHubOrgs: async () => ({ success: true, data: { orgs: [] } }),
-    onGitHubAuthDeviceCode: () => () => { },
-    onGitHubInvestigationProgress: () => () => { },
-    onGitHubInvestigationComplete: () => () => { },
-    onGitHubInvestigationError: () => () => { },
+    onGitHubAuthDeviceCode: () => () => {},
+    onGitHubInvestigationProgress: () => () => {},
+    onGitHubInvestigationComplete: () => () => {},
+    onGitHubInvestigationError: () => () => {},
     getAutoFixConfig: async () => null,
     saveAutoFixConfig: async () => true,
     getAutoFixQueue: async () => [],
     checkAutoFixLabels: async () => [],
     checkNewIssues: async () => [],
-    startAutoFix: () => { },
-    onAutoFixProgress: () => () => { },
-    onAutoFixComplete: () => () => { },
-    onAutoFixError: () => () => { },
+    startAutoFix: () => {},
+    onAutoFixProgress: () => () => {},
+    onAutoFixComplete: () => () => {},
+    onAutoFixError: () => () => {},
     listPRs: async () => [],
-    runPRReview: () => { },
+    runPRReview: () => {},
     cancelPRReview: async () => true,
     postPRReview: async () => true,
     postPRComment: async () => true,
@@ -158,21 +165,21 @@ const browserMockAPI: ElectronAPI = {
     getPRReview: async () => null,
     deletePRReview: async () => true,
     checkNewCommits: async () => ({ hasNewCommits: false, newCommitCount: 0 }),
-    runFollowupReview: () => { },
-    onPRReviewProgress: () => () => { },
-    onPRReviewComplete: () => () => { },
-    onPRReviewError: () => () => { },
-    batchAutoFix: () => { },
+    runFollowupReview: () => {},
+    onPRReviewProgress: () => () => {},
+    onPRReviewComplete: () => () => {},
+    onPRReviewError: () => () => {},
+    batchAutoFix: () => {},
     getBatches: async () => [],
-    onBatchProgress: () => () => { },
-    onBatchComplete: () => () => { },
-    onBatchError: () => () => { },
+    onBatchProgress: () => () => {},
+    onBatchComplete: () => () => {},
+    onBatchError: () => () => {},
     // Analyze & Group Issues (proactive workflow)
-    analyzeIssuesPreview: () => { },
+    analyzeIssuesPreview: () => {},
     approveBatches: async () => ({ success: true, batches: [] }),
-    onAnalyzePreviewProgress: () => () => { },
-    onAnalyzePreviewComplete: () => () => { },
-    onAnalyzePreviewError: () => () => { }
+    onAnalyzePreviewProgress: () => () => {},
+    onAnalyzePreviewComplete: () => () => {},
+    onAnalyzePreviewError: () => () => {}
   }
 };
 

@@ -212,13 +212,9 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
           setShowTypeSelector(false);
           await loadClaudeProfiles();
 
-          alert(
-            `Authenticating "${profileName}"...\n\n` +
-            `A browser window will open for you to log in with your Claude account.\n\n` +
-            `The authentication will be saved automatically once complete.`
-          );
+          alert(t('alerts.startingAuth', { name: profileName }));
         } else {
-          alert(`Failed to start authentication: ${initResult.error || 'Please try again.'}`);
+          alert(t('alerts.authFailed', { error: initResult.error || t('alerts.tryAgain') }));
         }
       }
     } catch (err) {
@@ -235,11 +231,11 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
       if (result.success) {
         alert(t('alerts.authenticating', { name: integration.name }));
       } else {
-        alert(t('alerts.authFailed', { error: result.error || 'Please try again.' }));
+        alert(t('alerts.authFailed', { error: result.error || t('alerts.tryAgain') }));
       }
     } catch (err) {
       console.error('Failed to re-authenticate:', err);
-      alert(t('alerts.authFailed', { error: 'Please try again.' }));
+      alert(t('alerts.authFailed', { error: t('alerts.tryAgain') }));
     }
   };
 
@@ -337,14 +333,14 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
         if (!profile) {
           return {
             success: false,
-            message: 'Profile not found. Please re-authenticate.'
+            message: t('alerts.profileNotFound')
           };
         }
 
         if (!integration.isAuthenticated || !profile.oauthToken) {
           return {
             success: false,
-            message: 'No OAuth token found. Please authenticate first.'
+            message: t('alerts.noOAuthToken')
           };
         }
 
@@ -355,24 +351,28 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
 
           if (result.success && result.data) {
             if (result.data.status === 'success') {
+              const key = integration.email
+                ? 'alerts.oauthTestSuccessWithEmail'
+                : 'alerts.oauthTestSuccess';
+
               return {
                 success: true,
-                message: t('alerts.connectionSuccess') + ` OAuth integration "${integration.name}" is verified${integration.email ? ` as ${integration.email}` : ''} and ready to use.`
+                message: t(key, { name: integration.name, email: integration.email })
               };
             } else {
               return {
                 success: false,
-                message: result.data.message || t('alerts.connectionFailed', { error: 'Connection test failed' })
+                message: result.data.message || t('alerts.connectionFailed', { error: t('alerts.connectionTestFailed') })
               };
             }
           } else {
             return {
               success: false,
-              message: result.error || t('alerts.connectionFailed', { error: 'Failed to test connection' })
+              message: result.error || t('alerts.connectionFailed', { error: t('alerts.failedToTestConnection') })
             };
           }
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const errorMessage = error instanceof Error ? error.message : t('alerts.unknownError');
           return {
             success: false,
             message: t('alerts.connectionFailed', { error: errorMessage })
@@ -383,7 +383,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
         if (!integration.apiToken || !integration.baseUrl) {
           return {
             success: false,
-            message: 'API Token or Base URL is missing.'
+            message: t('alerts.missingApiTokenOrUrl')
           };
         }
 
@@ -393,7 +393,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
         } catch {
           return {
             success: false,
-            message: 'Invalid Base URL format.'
+            message: t('alerts.invalidBaseUrl')
           };
         }
 
@@ -408,22 +408,22 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
             if (result.data.status === 'success') {
               return {
                 success: true,
-                message: t('alerts.connectionSuccess') + ` API Token integration "${integration.name}" is verified and ready for ${integration.baseUrl}`
+                message: t('alerts.apiTokenTestSuccess', { name: integration.name, baseUrl: integration.baseUrl })
               };
             } else {
               return {
                 success: false,
-                message: result.data.message || t('alerts.connectionFailed', { error: 'Connection test failed' })
+                message: result.data.message || t('alerts.connectionFailed', { error: t('alerts.connectionTestFailed') })
               };
             }
           } else {
             return {
               success: false,
-              message: result.error || t('alerts.connectionFailed', { error: 'Failed to test connection' })
+              message: result.error || t('alerts.connectionFailed', { error: t('alerts.failedToTestConnection') })
             };
           }
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const errorMessage = error instanceof Error ? error.message : t('alerts.unknownError');
           return {
             success: false,
             message: t('alerts.connectionFailed', { error: errorMessage })
@@ -433,7 +433,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
     } catch (error) {
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Test failed with unknown error'
+        message: error instanceof Error ? error.message : t('alerts.testFailedUnknownError')
       };
     }
   };
@@ -448,11 +448,11 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
       if (result.success && result.data?.models) {
         return result.data.models;
       } else {
-        alert(t('alerts.fetchModelsFailed', { error: result.error || 'Unknown error' }));
+        alert(t('alerts.fetchModelsFailed', { error: result.error || t('alerts.unknownError') }));
         return [];
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : t('alerts.unknownError');
       alert(t('alerts.fetchModelsFailed', { error: errorMessage }));
       return [];
     }
