@@ -6,6 +6,7 @@ import {
   Eye,
   ExternalLink,
   GitMerge,
+  Folder,
   FolderX,
   Loader2,
   RotateCcw,
@@ -14,6 +15,7 @@ import {
   GitCommit,
   Terminal
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../ui/button';
 import { Checkbox } from '../../ui/checkbox';
 import { cn } from '../../../lib/utils';
@@ -59,11 +61,10 @@ export function WorkspaceStatus({
   onLoadMergePreview,
   onStageOnlyChange,
   onMerge,
-  onClose,
-  onSwitchToTerminals,
   onOpenInbuiltTerminal
 }: WorkspaceStatusProps) {
-  const { openTerminal, openExternalTerminal, error: terminalError, isOpening } = useTerminalHandler();
+  const { t } = useTranslation('taskReview');
+  const { openExternalTerminal, error: terminalError, isOpening } = useTerminalHandler();
   const hasGitConflicts = mergePreview?.gitConflicts?.hasConflicts;
   const hasUncommittedChanges = mergePreview?.uncommittedChanges?.hasChanges;
   const uncommittedCount = mergePreview?.uncommittedChanges?.count || 0;
@@ -88,22 +89,22 @@ export function WorkspaceStatus({
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
       {/* Header with stats */}
-      <div className="px-4 py-3 bg-muted/30 border-b border-border">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-medium text-sm text-foreground flex items-center gap-2">
-            <GitBranch className="h-4 w-4 text-purple-400" />
-            Build Ready for Review
-          </h3>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
+	      <div className="px-4 py-3 bg-muted/30 border-b border-border">
+	        <div className="flex items-center justify-between mb-3">
+	          <h3 className="font-medium text-sm text-foreground flex items-center gap-2">
+	            <GitBranch className="h-4 w-4 text-purple-400" />
+	            {t('workspaceStatus.title')}
+	          </h3>
+	          <div className="flex items-center gap-1">
+	            <Button
+	              variant="ghost"
+	              size="sm"
               onClick={() => onShowDiffDialog(true)}
-              className="h-7 px-2 text-xs"
-            >
-              <Eye className="h-3.5 w-3.5 mr-1" />
-              View
-            </Button>
+	              className="h-7 px-2 text-xs"
+	            >
+	              <Eye className="h-3.5 w-3.5 mr-1" />
+	              {t('workspaceStatus.view')}
+	            </Button>
             {worktreeStatus.worktreePath && (
               <TerminalDropdown
                 onOpenInbuilt={() => {
@@ -120,15 +121,15 @@ export function WorkspaceStatus({
         </div>
 
         {/* Compact stats row */}
-        <div className="flex items-center gap-4 text-xs">
-          <span className="flex items-center gap-1.5 text-muted-foreground">
-            <FileCode className="h-3.5 w-3.5" />
-            <span className="font-medium text-foreground">{worktreeStatus.filesChanged || 0}</span> files
-          </span>
-          <span className="flex items-center gap-1.5 text-muted-foreground">
-            <GitCommit className="h-3.5 w-3.5" />
-            <span className="font-medium text-foreground">{worktreeStatus.commitCount || 0}</span> commits
-          </span>
+	        <div className="flex items-center gap-4 text-xs">
+	          <span className="flex items-center gap-1.5 text-muted-foreground">
+	            <FileCode className="h-3.5 w-3.5" />
+	            <span className="font-medium text-foreground">{worktreeStatus.filesChanged || 0}</span> {t('workspaceStatus.files', { count: worktreeStatus.filesChanged || 0 })}
+	          </span>
+	          <span className="flex items-center gap-1.5 text-muted-foreground">
+	            <GitCommit className="h-3.5 w-3.5" />
+	            <span className="font-medium text-foreground">{worktreeStatus.commitCount || 0}</span> {t('workspaceStatus.commits', { count: worktreeStatus.commitCount || 0 })}
+	          </span>
           <span className="flex items-center gap-1 text-success">
             <Plus className="h-3.5 w-3.5" />
             <span className="font-medium">{worktreeStatus.additions || 0}</span>
@@ -148,12 +149,13 @@ export function WorkspaceStatus({
           </div>
         )}
 
-        {/* Worktree path display */}
-        {worktreeStatus.worktreePath && (
-          <div className="mt-2 text-xs text-muted-foreground font-mono">
-            📁 {worktreeStatus.worktreePath}
-          </div>
-        )}
+	        {/* Worktree path display */}
+	        {worktreeStatus.worktreePath && (
+	          <div className="mt-2 text-xs text-muted-foreground font-mono flex items-center gap-1.5">
+	            <Folder className="h-3.5 w-3.5" />
+	            <span>{worktreeStatus.worktreePath}</span>
+	          </div>
+	        )}
 
         {/* Terminal error display */}
         {terminalError && (
@@ -174,16 +176,16 @@ export function WorkspaceStatus({
         )}
 
         {/* Uncommitted Changes Warning */}
-        {hasUncommittedChanges && (
-          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-warning/10 border border-warning/20">
-            <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-warning">
-                {uncommittedCount} uncommitted {uncommittedCount === 1 ? 'change' : 'changes'} in main project
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Commit or stash them before staging to avoid conflicts.
-              </p>
+	        {hasUncommittedChanges && (
+	          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-warning/10 border border-warning/20">
+	            <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+	            <div className="flex-1 min-w-0">
+	              <p className="text-sm font-medium text-warning">
+	                {t('workspaceStatus.uncommittedChangesTitle', { count: uncommittedCount })}
+	              </p>
+	              <p className="text-xs text-muted-foreground mt-0.5">
+	                {t('workspaceStatus.uncommittedChangesHint')}
+	              </p>
               <TerminalDropdown
                 onOpenInbuilt={() => {
                   const mainProjectPath = worktreeStatus.worktreePath?.replace('.worktrees/' + task.specId, '') || '';
@@ -205,12 +207,12 @@ export function WorkspaceStatus({
         )}
 
         {/* Loading indicator */}
-        {isLoadingPreview && !mergePreview && (
-          <div className="flex items-center gap-2 text-muted-foreground text-sm py-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Checking for conflicts...
-          </div>
-        )}
+	        {isLoadingPreview && !mergePreview && (
+	          <div className="flex items-center gap-2 text-muted-foreground text-sm py-2">
+	            <Loader2 className="h-4 w-4 animate-spin" />
+	            {t('workspaceStatus.checkingConflicts')}
+	          </div>
+	        )}
 
         {/* Merge Status */}
         {mergePreview && (
@@ -223,62 +225,65 @@ export function WorkspaceStatus({
                 : "bg-warning/10 border-warning/20"
           )}>
             <div className="flex items-center gap-2">
-              {hasGitConflicts ? (
-                <>
-                  <AlertTriangle className="h-4 w-4 text-warning" />
-                  <div>
-                    <span className="text-sm font-medium text-warning">Branch Diverged</span>
-                    <span className="text-xs text-muted-foreground ml-2">AI will resolve</span>
-                  </div>
-                </>
-              ) : isBranchBehind || hasPathMappedMerges ? (
-                <>
-                  <AlertTriangle className="h-4 w-4 text-warning" />
-                  <div>
-                    <span className="text-sm font-medium text-warning">
-                      {hasPathMappedMerges ? 'Files Renamed' : 'Branch Behind'}
-                    </span>
-                    <span className="text-xs text-muted-foreground ml-2">
-                      AI will resolve ({hasPathMappedMerges ? `${pathMappedAIMergeCount} files` : `${commitsBehind} commits`})
-                    </span>
-                  </div>
-                </>
-              ) : !hasAIConflicts ? (
-                <>
-                  <CheckCircle className="h-4 w-4 text-success" />
-                  <span className="text-sm font-medium text-success">Ready to merge</span>
-                  <span className="text-xs text-muted-foreground ml-1">
-                    {mergePreview.summary.totalFiles} files
-                  </span>
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="h-4 w-4 text-warning" />
-                  <span className="text-sm font-medium text-warning">
-                    {mergePreview.conflicts.length} conflict{mergePreview.conflicts.length !== 1 ? 's' : ''}
-                  </span>
-                </>
-              )}
+	              {hasGitConflicts ? (
+	                <>
+	                  <AlertTriangle className="h-4 w-4 text-warning" />
+	                  <div>
+	                    <span className="text-sm font-medium text-warning">{t('workspaceStatus.branchDiverged')}</span>
+	                    <span className="text-xs text-muted-foreground ml-2">{t('workspaceStatus.aiWillResolve')}</span>
+	                  </div>
+	                </>
+	              ) : isBranchBehind || hasPathMappedMerges ? (
+	                <>
+	                  <AlertTriangle className="h-4 w-4 text-warning" />
+	                  <div>
+	                    <span className="text-sm font-medium text-warning">
+	                      {hasPathMappedMerges ? t('workspaceStatus.filesRenamed') : t('workspaceStatus.branchBehind')}
+	                    </span>
+	                    <span className="text-xs text-muted-foreground ml-2">
+	                      {t('workspaceStatus.aiWillResolve')} ({hasPathMappedMerges
+	                        ? t('workspaceStatus.filesWithCount', { count: pathMappedAIMergeCount })
+	                        : t('workspaceStatus.commitsWithCount', { count: commitsBehind })
+	                      })
+	                    </span>
+	                  </div>
+	                </>
+	              ) : !hasAIConflicts ? (
+	                <>
+	                  <CheckCircle className="h-4 w-4 text-success" />
+	                  <span className="text-sm font-medium text-success">{t('workspaceStatus.readyToMerge')}</span>
+	                  <span className="text-xs text-muted-foreground ml-1">
+	                    {t('workspaceStatus.filesWithCount', { count: mergePreview.summary.totalFiles })}
+	                  </span>
+	                </>
+	              ) : (
+	                <>
+	                  <AlertTriangle className="h-4 w-4 text-warning" />
+	                  <span className="text-sm font-medium text-warning">
+	                    {t('workspaceStatus.conflictsWithCount', { count: mergePreview.conflicts.length })}
+	                  </span>
+	                </>
+	              )}
             </div>
             <div className="flex items-center gap-1">
               {(hasGitConflicts || isBranchBehind || hasPathMappedMerges || hasAIConflicts) && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => onShowConflictDialog(true)}
-                  className="h-7 text-xs"
-                >
-                  Details
-                </Button>
-              )}
-              <Button
-                variant="ghost"
+	                  onClick={() => onShowConflictDialog(true)}
+	                  className="h-7 text-xs"
+	                >
+	                  {t('workspaceStatus.details')}
+	                </Button>
+	              )}
+	              <Button
+	                variant="ghost"
                 size="sm"
                 onClick={onLoadMergePreview}
-                disabled={isLoadingPreview}
-                className="h-7 px-2"
-                title="Refresh"
-              >
+	                disabled={isLoadingPreview}
+	                className="h-7 px-2"
+	                title={t('workspaceStatus.refresh')}
+	              >
                 {isLoadingPreview ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
@@ -289,49 +294,52 @@ export function WorkspaceStatus({
           </div>
         )}
 
-        {/* Git Conflicts Details */}
-        {hasGitConflicts && mergePreview?.gitConflicts && (
-          <div className="text-xs text-muted-foreground pl-6">
-            Main branch has {mergePreview.gitConflicts.commitsBehind} new commit{mergePreview.gitConflicts.commitsBehind !== 1 ? 's' : ''}.
-            {mergePreview.gitConflicts.conflictingFiles.length > 0 && (
-              <span className="text-warning">
-                {' '}{mergePreview.gitConflicts.conflictingFiles.length} file{mergePreview.gitConflicts.conflictingFiles.length !== 1 ? 's' : ''} need merging.
-              </span>
-            )}
-          </div>
-        )}
+	        {/* Git Conflicts Details */}
+	        {hasGitConflicts && mergePreview?.gitConflicts && (
+	          <div className="text-xs text-muted-foreground pl-6">
+	            {t('workspaceStatus.mainBranchHasNewCommits', { count: mergePreview.gitConflicts.commitsBehind })}
+	            {mergePreview.gitConflicts.conflictingFiles.length > 0 && (
+	              <span className="text-warning">
+	                {' '}{t('workspaceStatus.filesNeedMerging', { count: mergePreview.gitConflicts.conflictingFiles.length })}
+	              </span>
+	            )}
+	          </div>
+	        )}
 
         {/* Branch Behind Details (no explicit conflicts but needs AI merge due to path mappings) */}
-        {!hasGitConflicts && isBranchBehind && mergePreview?.gitConflicts && (
-          <div className="text-xs text-muted-foreground pl-6">
-            Target branch has {commitsBehind} new commit{commitsBehind !== 1 ? 's' : ''} since this build started.
-            {hasPathMappedMerges ? (
-              <span className="text-warning">
-                {' '}{pathMappedAIMergeCount} file{pathMappedAIMergeCount !== 1 ? 's' : ''} need AI merge due to {totalRenames} file rename{totalRenames !== 1 ? 's' : ''}.
-              </span>
-            ) : totalRenames > 0 ? (
-              <span className="text-warning"> {totalRenames} file rename{totalRenames !== 1 ? 's' : ''} detected - AI will handle the merge.</span>
-            ) : (
-              <span className="text-warning"> Files may have been renamed or moved - AI will handle the merge.</span>
-            )}
-          </div>
-        )}
+	        {!hasGitConflicts && isBranchBehind && mergePreview?.gitConflicts && (
+	          <div className="text-xs text-muted-foreground pl-6">
+	            {t('workspaceStatus.targetBranchHasNewCommitsSinceBuild', { count: commitsBehind })}
+	            {hasPathMappedMerges ? (
+	              <span className="text-warning">
+	                {' '}{t('workspaceStatus.aiMergeDueToRenames', {
+	                  filesText: t('workspaceStatus.filesWithCount', { count: pathMappedAIMergeCount }),
+	                  renamesText: t('workspaceStatus.fileRenamesWithCount', { count: totalRenames })
+	                })}
+	              </span>
+	            ) : totalRenames > 0 ? (
+	              <span className="text-warning"> {t('workspaceStatus.fileRenamesDetectedAiWillHandle', { count: totalRenames })}</span>
+	            ) : (
+	              <span className="text-warning"> {t('workspaceStatus.filesMayHaveBeenRenamedAiWillHandle')}</span>
+	            )}
+	          </div>
+	        )}
       </div>
 
       {/* Actions Footer */}
       <div className="px-4 py-3 bg-muted/20 border-t border-border space-y-3">
         {/* Stage Only Option */}
-        <label className="inline-flex items-center gap-2.5 text-sm cursor-pointer select-none px-3 py-2 rounded-lg border border-border bg-background/50 hover:bg-background/80 transition-colors">
+	        <label className="inline-flex items-center gap-2.5 text-sm cursor-pointer select-none px-3 py-2 rounded-lg border border-border bg-background/50 hover:bg-background/80 transition-colors">
           <Checkbox
             checked={stageOnly}
             onCheckedChange={(checked) => onStageOnlyChange(checked === true)}
             className="border-muted-foreground/50 data-[state=checked]:border-primary"
           />
-          <span className={cn(
-            "transition-colors",
-            stageOnly ? "text-foreground" : "text-muted-foreground"
-          )}>Stage only (review in IDE before committing)</span>
-        </label>
+	          <span className={cn(
+	            "transition-colors",
+	            stageOnly ? "text-foreground" : "text-muted-foreground"
+	          )}>{t('workspaceStatus.stageOnlyLabel')}</span>
+	        </label>
 
         {/* Primary Actions */}
         <div className="flex gap-2">
@@ -341,30 +349,34 @@ export function WorkspaceStatus({
             disabled={isMerging || isDiscarding}
             className="flex-1"
           >
-            {isMerging ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {hasGitConflicts || isBranchBehind || hasPathMappedMerges ? 'Resolving...' : stageOnly ? 'Staging...' : 'Merging...'}
-              </>
-            ) : (
-              <>
-                <GitMerge className="mr-2 h-4 w-4" />
-                {hasGitConflicts || isBranchBehind || hasPathMappedMerges
-                  ? (stageOnly ? 'Stage with AI Merge' : 'Merge with AI')
-                  : (stageOnly ? 'Stage Changes' : 'Merge to Main')}
-              </>
-            )}
-          </Button>
+	            {isMerging ? (
+	              <>
+	                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+	                {hasGitConflicts || isBranchBehind || hasPathMappedMerges
+	                  ? t('workspaceStatus.resolving')
+	                  : stageOnly
+	                    ? t('workspaceStatus.staging')
+	                    : t('workspaceStatus.merging')}
+	              </>
+	            ) : (
+	              <>
+	                <GitMerge className="mr-2 h-4 w-4" />
+	                {hasGitConflicts || isBranchBehind || hasPathMappedMerges
+	                  ? (stageOnly ? t('workspaceStatus.stageWithAiMerge') : t('workspaceStatus.mergeWithAi'))
+	                  : (stageOnly ? t('workspaceStatus.stageChanges') : t('workspaceStatus.mergeToMain'))}
+	              </>
+	            )}
+	          </Button>
           <Button
             variant="outline"
             size="icon"
-            onClick={() => onShowDiscardDialog(true)}
-            disabled={isMerging || isDiscarding}
-            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30"
-            title="Discard build"
-          >
-            <FolderX className="h-4 w-4" />
-          </Button>
+	            onClick={() => onShowDiscardDialog(true)}
+	            disabled={isMerging || isDiscarding}
+	            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30"
+	            title={t('workspaceStatus.discardBuild')}
+	          >
+	            <FolderX className="h-4 w-4" />
+	          </Button>
         </div>
       </div>
     </div>

@@ -539,6 +539,8 @@ export function registerWorktreeHandlers(
 
               debug('Merge result. isStageOnly:', isStageOnly, 'newStatus:', newStatus, 'staged:', staged);
 
+              const { promises: fsPromises } = require('fs');
+
               // Read suggested commit message if staging succeeded
               // OPTIMIZATION: Use async I/O to prevent blocking
               let suggestedCommitMessage: string | undefined;
@@ -546,7 +548,6 @@ export function registerWorktreeHandlers(
                 const commitMsgPath = path.join(specDir, 'suggested_commit_message.txt');
                 try {
                   if (existsSync(commitMsgPath)) {
-                    const { promises: fsPromises } = require('fs');
                     suggestedCommitMessage = (await fsPromises.readFile(commitMsgPath, 'utf-8')).trim();
                     debug('Read suggested commit message:', suggestedCommitMessage?.substring(0, 100));
                   }
@@ -563,8 +564,6 @@ export function registerWorktreeHandlers(
                 { path: path.join(specDir, AUTO_BUILD_PATHS.IMPLEMENTATION_PLAN), isMain: true },
                 { path: path.join(worktreePath, AUTO_BUILD_PATHS.IMPLEMENTATION_PLAN), isMain: false }
               ];
-
-              const { promises: fsPromises } = require('fs');
 
               // Fire and forget - don't block the response on file writes
               const updatePlans = async () => {
